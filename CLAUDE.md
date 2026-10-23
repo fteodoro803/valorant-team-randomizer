@@ -38,4 +38,6 @@ How code is written in this project. A decision in `DECISIONS.md` that creates a
 
 **Randomiser logic:** all rules live in a pure `rollComp` function with Vitest tests, and no UI code inside it. History is read and written only through `src/lib/history.ts`, so the storage can change later (D3).
 
+**Riot key:** it lives only on a server, never in the repo, the source, or a `VITE_` variable (Vite ships those to the browser). `.env` files are git-ignored and `npm run lint` fails if a key-shaped string is in `src`, `public`, `index.html` or `dist`. Stats code counts only opted-in players and never opponents, and every call to Riot waits out a 429's `Retry-After` (D17).
+
 *Add further project conventions here as short sections: naming and file layout, error handling, and a definition of done (the commands that must pass before a task counts as finished).*

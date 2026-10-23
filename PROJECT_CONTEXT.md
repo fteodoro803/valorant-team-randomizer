@@ -6,7 +6,7 @@
 
 A simple, fun web app for a team of 5 Valorant players. Phase 1 randomises everyone's agent for the next game. Later phases add little fun stats about how the team played.
 
-- **Users:** one team of 5 friends. No accounts, no public audience.
+- **Users:** it started as a tool for one team of 5 friends, and is now public but small (D17). No accounts yet. Stats will be opt-in for each player.
 - **Devices:** a web page, used on a laptop or phone before a game.
 - **Hosting:** the owner's portfolio site, as a Lab tool at `/lab/<id>/` (D14). It builds to static files, so it needs no server. Getting it listed there is #4.
 
@@ -44,6 +44,23 @@ Settled-but-unbuilt work lives on GitHub as issues labelled `known-issue`. Open 
 ### Match data source for stats
 
 Last alive, damage to teammates, clutches, body shots and kills on feet all need round-level and hit-location data. Options are Riot's official match API (needs an approved production key), an unofficial third-party API such as HenrikDev (round-level data, but a dependency the owner doesn't control), or entering results by hand (only enough for simple stats). It is tracked in #3 and has to be settled before phase 2 starts.
+
+### Registering with Riot
+
+Official match data needs an approved production key, and Riot Sign On (how players opt in) needs one too. A development key (valid for a day) cannot back a public app, and Riot doesn't support personal keys for Valorant. The plan is on the plan page below, in milestones:
+
+1. **Security guidelines** (done): `.env` files are ignored, `npm run lint` fails if a Riot key appears in the source or build, and the footer carries both Riot notices.
+2. **Demo flows with dummy data** (D18, D19, #16): linking an account, team stats of the week, a player who hasn't opted in, My data (opt out and delete) and My stats. Built inside this app, so Riot has something to test.
+3. **Registration** (#18): the owner files the product on the Riot developer portal, with a link to the demo.
+4. **After approval**: a server that holds the key (where it lives is #17), Riot Sign On, real match data, and settling #3.
+
+Riot's rules to keep to:
+- Stats are shown only for players who opted in, and only for the team, never opponents (no scouting).
+- The key lives only on a server, never in the repo or in a `VITE_` variable.
+- On a 429 response, wait for the `Retry-After` time. Don't depend on the body of non-200 responses.
+- Data is deleted when a player asks, and when Riot passes on a deletion request.
+- The product is registered once, and its portal page is updated whenever a stats feature changes.
+- No money, ads or betting.
 
 ### A shared database
 
