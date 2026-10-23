@@ -22,6 +22,7 @@ The log of decisions made about this project, and why. Open questions live on Gi
 | D4 | **Every roll counts toward history, with no Lock in button.** It saves a tap per game. The cost is that rerolling skews the history, so a lock-in can be added later if that becomes annoying. | `PROJECT_CONTEXT.md` |
 | D5 | **History pushes softly and keeps the last 10 rolls per player.** The more often a player had a role recently, the less likely they get it again, but it can still happen when the toggles force a role. A player who sits out keeps their own last 10 rather than losing them. A hard "never the same role twice" rule clashes with the role minimums for only 5 players. | `PROJECT_CONTEXT.md` |
 | D6 | **If a database is added later, it will be MongoDB, not Supabase.** Recorded as a direction only, not a commitment. | `PROJECT_CONTEXT.md` |
+| D7 | **The project runs on Node 24.** Pinned with `.nvmrc` and `engines`. Node 24 ships npm 11, which also avoids a crash that npm 10.8.2 hit installing this project's dependencies. | `CLAUDE.md` |
 
 ---
 
