@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Secrets: a Riot API key must never be committed (see scripts/check-secrets.mjs)
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

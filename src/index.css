@@ -1174,3 +1174,11 @@ input:not([type]) {
   color: var(--muted);
   font-size: 0.8rem;
 }
+
+.disclaimer p {
+  margin: 0;
+}
+
+.disclaimer p + p {
+  margin-top: 8px;
+}
