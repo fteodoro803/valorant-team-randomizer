@@ -1,0 +1,405 @@
+:root {
+  --bg: #0f1923;
+  --panel: #1a2733;
+  --line: #2c3b49;
+  --text: #ece8e1;
+  --muted: #8b97a3;
+  --accent: #ff4655;
+  --duelist: #ff4655;
+  --initiator: #f2a93b;
+  --controller: #9b7bff;
+  --sentinel: #3ec9b0;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Buttons and inputs */
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+}
+
+button {
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: var(--line);
+  border-color: var(--muted);
+}
+
+button.roll:hover:not(:disabled) {
+  background: #ff6674;
+  border-color: #ff6674;
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+button.icon-btn:hover:not(:disabled) {
+  color: var(--text);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.roll {
+  width: 100%;
+  margin: 16px 0;
+  padding: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+input[type="text"],
+input:not([type]),
+input[type="number"] {
+  font: inherit;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+input:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  padding: 0;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.remove-choice {
+  display: flex;
+  gap: 6px;
+}
+
+button.danger {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.saved {
+  margin-top: 12px;
+}
+
+.saved-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.saved-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: rgba(255, 70, 85, 0.12);
+}
+
+/* Players */
+
+.players,
+.rules,
+.history,
+.cards {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.player {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.player-row {
+  display: flex;
+  gap: 8px;
+}
+
+.player-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.agent-group {
+  border: 0;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.agent-group legend {
+  padding: 0;
+  margin-bottom: 2px;
+}
+
+/* Rules */
+
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stepper-value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.history-toggle {
+  margin-top: 4px;
+}
+
+/* Roles */
+
+.role-text {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.duelist.role-text {
+  color: var(--duelist);
+}
+.initiator.role-text {
+  color: var(--initiator);
+}
+.controller.role-text {
+  color: var(--controller);
+}
+.sentinel.role-text {
+  color: var(--sentinel);
+}
+
+/* Comp result */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.card {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  border-left: 4px solid var(--muted);
+}
+
+.card.duelist {
+  border-left-color: var(--duelist);
+}
+.card.initiator {
+  border-left-color: var(--initiator);
+}
+.card.controller {
+  border-left-color: var(--controller);
+}
+.card.sentinel {
+  border-left-color: var(--sentinel);
+}
+
+.card-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+}
+
+.chip-icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.card-player {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.card-agent {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.card-role {
+  text-transform: capitalize;
+  font-size: 0.85rem;
+}
+
+/* History */
+
+.history li {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0;
+}
+
+.history-name {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--muted);
+}
+
+.chip.duelist {
+  border-color: var(--duelist);
+}
+.chip.initiator {
+  border-color: var(--initiator);
+}
+.chip.controller {
+  border-color: var(--controller);
+}
+.chip.sentinel {
+  border-color: var(--sentinel);
+}
+
+.saved-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
