@@ -33,7 +33,7 @@ How code is written in this project. A decision in `DECISIONS.md` that creates a
 
 **Node:** use Node 24 (`.nvmrc` and `engines` in `package.json`). Run `nvm use` if a shell isn't already on 24 (D7).
 
-**Hosting:** the page is served from `/lab/<id>/` on the portfolio, so keep every path relative (`base: './'` in `vite.config.ts`, icons through `agentIconUrl`), keep the "Back to Lab" link, and don't depend on the portfolio's styles (D14).
+**Hosting:** the page is served from `/lab/<id>/` on the portfolio, so keep every path relative (`base: './'` in `vite.config.ts`, icons through `agentIconUrl`), keep the "Back to Projects" link, and don't depend on the portfolio's styles (D14).
 
 **Randomiser logic:** all rules live in a pure `rollComp` function with Vitest tests, and no UI code inside it. History is read and written only through `src/lib/history.ts`, so the storage can change later (D3).
 
