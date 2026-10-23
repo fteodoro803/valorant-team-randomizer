@@ -4,6 +4,7 @@ Work items live on GitHub Issues, knowledge lives in these docs. Read alongside:
 - **GitHub Issues** — labels `bug`, `deferred`, `known-issue`, `decision` and `blocked`. **At the start of a session, load open decisions with `gh issue list --label decision --state open` and treat each as "don't assume an answer here". If the command fails, say so.** Before starting work in an area, check `deferred` issues whose "Pick up when" matches. Don't start an issue labelled `blocked`.
 - `DECISIONS.md` — the log of decisions made, and why. **If you hit an unsettled convention or product question, raise it as a `decision` issue rather than picking one silently.**
 - `PROJECT_CONTEXT.md` — what the project is, its origin, future directions, and which pieces are in learning mode.
+- `DESIGN_SYSTEM.md` — the visual design reference. Read before building or restyling UI; update it when a design decision changes, and add a line under "Where the build differs" whenever a build departs from the design.
 
 **Reading pages** (steps in the project-docs skill; links in `PROJECT_CONTEXT.md`):
 - Before building anything that touches several pieces, publish a **plan page** and wait for the go-ahead.
