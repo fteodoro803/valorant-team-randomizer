@@ -1,0 +1,38 @@
+name: Bug
+description: Something that's supposed to work and doesn't
+labels: ["bug"]
+body:
+  - type: textarea
+    id: symptom
+    attributes:
+      label: What happens
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Go to...\n2. Click...\n3. See..."
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where in the app
+      description: Page, screen or area
+  - type: textarea
+    id: cause
+    attributes:
+      label: Root cause or suspected fix
+      description: Leave blank if not investigated yet
+  - type: input
+    id: found-while
+    attributes:
+      label: Found while
+      description: What you were doing when you noticed it

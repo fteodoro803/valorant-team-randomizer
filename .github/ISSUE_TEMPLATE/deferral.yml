@@ -1,0 +1,42 @@
+name: Deferral
+description: A needed change that came up during other work and was parked on purpose
+labels: ["deferred"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: Change
+      description: What needs to happen, and where in the code
+    validations:
+      required: true
+  - type: input
+    id: raised-while
+    attributes:
+      label: Raised while
+      description: The task, PR or issue it came out of
+    validations:
+      required: true
+  - type: textarea
+    id: why-deferred
+    attributes:
+      label: Why deferred
+      description: Why it didn't belong in that task (scope, risk, size, ordering, dependency)
+    validations:
+      required: true
+  - type: input
+    id: pick-up-when
+    attributes:
+      label: Pick up when
+      description: The trigger, e.g. "before launch", "once #12 lands", "next time the queue page is touched"
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options:
+        - Small
+        - Medium
+        - Large (probably needs a plan doc)
+    validations:
+      required: true
