@@ -1,0 +1,36 @@
+name: Decision
+description: An open question about what we want. Anyone can weigh in; the owner decides
+labels: ["decision"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: The question
+      description: Phrased so it can be answered
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What exists today and why the question matters
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options
+      description: Letter each option and give its trade-off
+      placeholder: "A. ... (gain / cost)\nB. ... (gain / cost)"
+    validations:
+      required: true
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Recommendation
+      description: Which option, and the deciding reason
+  - type: textarea
+    id: waiting
+    attributes:
+      label: What's waiting on it
+      description: Issues or work this blocks
