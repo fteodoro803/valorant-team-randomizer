@@ -10,6 +10,7 @@ import {
   playerKey,
   rememberPlayers,
   removeFromTeam,
+  suggestSaved,
   toRollPlayers,
 } from "./roster";
 import type { Assignment, History, Player, Role, Roster } from "./types";
@@ -184,5 +185,42 @@ describe("keepNamedHistory", () => {
     const alex = keyForName("Alex");
     const history: History = { "player-1": [pick("player-1")], [alex]: [pick(alex)] };
     expect(Object.keys(keepNamedHistory(history))).toEqual([alex]);
+  });
+});
+
+describe("suggestSaved", () => {
+  const saved = (name: string) => ({ name, excludedAgents: [], bannedRoles: [] });
+  const roster: Roster = {
+    [keyForName("Anya")]: saved("Anya"),
+    [keyForName("Agu")]: saved("Agu"),
+    [keyForName("Zoon")]: saved("Zoon"),
+  };
+  const names = (people: { name: string }[]) => people.map((p) => p.name);
+
+  it("offers people whose name starts with the text, sorted by name", () => {
+    expect(names(suggestSaved(roster, [], "a"))).toEqual(["Agu", "Anya"]);
+  });
+
+  it("ignores capitals and extra spaces in what was typed", () => {
+    expect(names(suggestSaved(roster, [], "  AG "))).toEqual(["Agu"]);
+  });
+
+  it("does not match in the middle of a name", () => {
+    expect(suggestSaved(roster, [], "gu")).toEqual([]);
+  });
+
+  it("leaves out people who are already on the team, so a typed name isn't offered back", () => {
+    const team = [player("p1", "Agu"), player("p2", "")];
+    expect(names(suggestSaved(roster, team, "Agu"))).toEqual([]);
+    expect(names(suggestSaved(roster, team, "a"))).toEqual(["Anya"]);
+  });
+
+  it("offers everyone not on the team when nothing is typed", () => {
+    const team = [player("p1", "Zoon")];
+    expect(names(suggestSaved(roster, team, ""))).toEqual(["Agu", "Anya"]);
+  });
+
+  it("offers nobody when no saved person matches", () => {
+    expect(suggestSaved(roster, [], "Q")).toEqual([]);
   });
 });
