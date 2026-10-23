@@ -48,6 +48,23 @@ export function addSavedToTeam(
 /** The saved person with this name, if there is one. */
 export const findSaved = (roster: Roster, name: string) => roster[keyForName(name)];
 
+/**
+ * The saved people to offer while a name is being typed.
+ *
+ * Someone is offered when their name starts with what was typed (capitals and extra spaces
+ * ignored) and they are not on the team already. Leaving out people on the team keeps the list
+ * from offering the very name that was just typed. Empty text offers everyone left, so
+ * the list can be used without typing. Sorted by name so the order doesn't change between rolls.
+ */
+export function suggestSaved(roster: Roster, players: Player[], typed: string): SavedPlayer[] {
+  const onTeam = new Set(players.map(playerKey));
+  const start = normaliseName(typed);
+  return Object.entries(roster)
+    .filter(([key, saved]) => !onTeam.has(key) && normaliseName(saved.name).startsWith(start))
+    .map(([, saved]) => saved)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+
 /** The first name used by two players, as typed, or null if every name is different. */
 export function findDuplicateName(players: Player[]): string | null {
   const seen = new Set<string>();

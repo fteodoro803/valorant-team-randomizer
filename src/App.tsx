@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CompResult } from "./components/CompResult";
 import { HistoryView } from "./components/HistoryView";
 import { PlayerList } from "./components/PlayerList";
@@ -39,6 +39,8 @@ const defaultSettings: Settings = {
 interface RolledComp {
   comp: Assignment[];
   players: Player[];
+  /** Counts up with every roll, so the cards are drawn fresh and the reveal plays again. */
+  id: number;
 }
 
 export default function App() {
@@ -49,10 +51,26 @@ export default function App() {
   const [history, setHistory] = useState(() => keepNamedHistory(historyStore.load()));
   const [rolled, setRolled] = useState<RolledComp | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Counts every press of Roll, successful or not, so the page can scroll to what it produced.
+  const [rollPresses, setRollPresses] = useState(0);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  // The Roll button is pinned to the bottom on phones, so a roll can happen while the comp is
+  // scrolled out of view. Bring the result (or the error) back so the press is never silent,
+  // but leave the page alone when the result is already near the top of the screen.
+  useEffect(() => {
+    const result = resultRef.current;
+    if (rollPresses === 0 || !result) return;
+    const { top } = result.getBoundingClientRect();
+    if (top >= 0 && top < window.innerHeight / 2) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    result.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [rollPresses]);
 
   // 1. Check names, 2. roll, 3. show it, 4. remember it. Every roll counts toward history (D4),
   //    but only for named players, since an unnamed slot has no one to remember (D10).
   const roll = () => {
+    setRollPresses((n) => n + 1);
     const duplicate = findDuplicateName(players);
     if (duplicate) {
       setError(`Two players are both called ${duplicate}. Give them different names.`);
@@ -62,7 +80,7 @@ export default function App() {
       const rollPlayers = toRollPlayers(players);
       const comp = rollComp(rollPlayers, settings, history);
       const nextHistory = recordRoll(history, comp.filter((pick) => isNamedKey(pick.playerId)));
-      setRolled({ comp, players: rollPlayers });
+      setRolled({ comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1 });
       setError(null);
       setHistory(nextHistory);
       historyStore.save(nextHistory);
@@ -103,32 +121,41 @@ export default function App() {
 
   return (
     <main className="app">
-      <header>
-        {/* The portfolio's Lab page is one level up from where this is served (D14). */}
-        <a className="back-link" href="../">
-          ← Back to Lab
-        </a>
-        <h1>Valorant team randomiser</h1>
-        <p className="muted">Pick everyone's agent for the next game.</p>
+      {/* Header: title on the left, Roll on the right on wide screens and pinned to the bottom on phones */}
+      <header className="app-head">
+        <div>
+          {/* The portfolio's Lab page is one level up from where this is served (D14). */}
+          <a className="back-link" href="../">
+            ← Back to Lab
+          </a>
+          <h1>Team randomiser</h1>
+        </div>
+        <div className="roll-bar">
+          <button type="button" className="roll" onClick={roll}>
+            Roll
+          </button>
+        </div>
       </header>
 
-      <button type="button" className="roll" onClick={roll}>
-        Roll the comp
-      </button>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-      {rolled && <CompResult comp={rolled.comp} players={rolled.players} />}
+      {/* Result: the error, the comp, or a prompt before the first roll */}
+      <div ref={resultRef} className="result">
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        {rolled ? (
+          <CompResult comp={rolled.comp} players={rolled.players} rollId={rolled.id} />
+        ) : (
+          <p className="empty">Press Roll to give everyone an agent for the next game.</p>
+        )}
+      </div>
 
       <div className="columns">
         <PlayerList players={players} roster={roster} onChange={setPlayers} onRemove={removePlayer} onForget={forget} />
-        <div className="stack">
-          <SettingsPanel settings={settings} playerCount={players.length} onChange={setSettings} />
-          <HistoryView players={toRollPlayers(players)} history={history} onClear={clearHistory} />
-        </div>
+        <SettingsPanel settings={settings} playerCount={players.length} onChange={setSettings} />
       </div>
+      <HistoryView players={toRollPlayers(players)} history={history} onClear={clearHistory} />
     </main>
   );
 }
