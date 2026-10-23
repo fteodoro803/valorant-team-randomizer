@@ -11,10 +11,11 @@ const seeded = (seed: number) => () => {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
 
-const player = (id: string, excludedAgents: string[] = []): Player => ({
+const player = (id: string, excludedAgents: string[] = [], bannedRoles: Role[] = []): Player => ({
   id,
   name: id,
   excludedAgents,
+  bannedRoles,
 });
 const team = ["a", "b", "c", "d", "e"].map((id) => player(id));
 
@@ -67,6 +68,28 @@ describe("rollComp", () => {
     }
   });
 
+  it("never gives a player a role they banned", () => {
+    const players = [player("a", [], ["sentinel", "duelist"]), ...team.slice(1)];
+    for (let seed = 0; seed < 300; seed++) {
+      const comp = rollComp(players, settings(), {}, seeded(seed));
+      expect(["sentinel", "duelist"]).not.toContain(comp[0].role);
+    }
+  });
+
+  it("still meets the minimums when some players have banned roles", () => {
+    const players = [
+      player("a", [], ["controller"]),
+      player("b", [], ["controller"]),
+      player("c", [], ["controller"]),
+      player("d", [], ["controller"]),
+      player("e"),
+    ];
+    for (let seed = 0; seed < 100; seed++) {
+      const comp = rollComp(players, settings({ controller: 1 }), {}, seeded(seed));
+      expect(comp[4].role).toBe("controller");
+    }
+  });
+
   it("makes a role less likely for a player who has had it a lot, when history is on", () => {
     const sentinelHeavy: Assignment[] = Array.from({ length: 10 }, () => ({
       playerId: "a",
@@ -79,6 +102,24 @@ describe("rollComp", () => {
       for (let seed = 0; seed < 2000; seed++) {
         const comp = rollComp(team, settings({}, historyAware), history, seeded(seed));
         if (comp[0].role === "sentinel") hits++;
+      }
+      return hits / 2000;
+    };
+    expect(rate(true)).toBeLessThan(rate(false) / 2);
+  });
+
+  it("hands a required role to whoever has had it least, when history is on", () => {
+    const controllerHeavy: Assignment[] = Array.from({ length: 10 }, () => ({
+      playerId: "a",
+      agent: "Omen",
+      role: "controller",
+    }));
+    const history: History = { a: controllerHeavy };
+    const rate = (historyAware: boolean) => {
+      let hits = 0;
+      for (let seed = 0; seed < 2000; seed++) {
+        const comp = rollComp(team, settings({ controller: 1 }, historyAware), history, seeded(seed));
+        if (comp[0].role === "controller") hits++;
       }
       return hits / 2000;
     };
@@ -121,9 +162,26 @@ describe("rollComp", () => {
       );
     });
 
-    it("rejects more players than agents", () => {
-      const many = Array.from({ length: 30 }, (_, i) => player(`p${i}`));
-      expect(() => rollComp(many, settings(), {}, seeded(1))).toThrow(RollError);
+    it("rejects a required role that every player has banned, naming the role", () => {
+      const players = team.map((p) => player(p.id, [], ["controller"]));
+      expect(() => rollComp(players, settings({ controller: 1 }), {}, seeded(1))).toThrow(
+        /controller/i,
+      );
+    });
+
+    it("rejects a player who has banned every role", () => {
+      const players = [player("a", [], ["duelist", "initiator", "controller", "sentinel"]), ...team.slice(1)];
+      expect(() => rollComp(players, settings(), {}, seeded(1))).toThrow(/a has banned/i);
+    });
+
+    it("rejects a team of more than five players", () => {
+      const six = Array.from({ length: 6 }, (_, i) => player(`p${i}`));
+      expect(() => rollComp(six, settings(), {}, seeded(1))).toThrow(/at most 5/);
+    });
+
+    it("rejects more players than agents when a small pool is used", () => {
+      const tinyPool = AGENTS.slice(0, 3);
+      expect(() => rollComp(team, settings(), {}, seeded(1), tinyPool)).toThrow(RollError);
     });
 
     it("rejects a negative or fractional minimum", () => {

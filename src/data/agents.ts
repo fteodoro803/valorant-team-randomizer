@@ -3,6 +3,13 @@ import type { Agent, Role } from "../lib/types";
 const byRole = (role: Role, names: string[]): Agent[] =>
   names.map((name) => ({ name, role }));
 
+/** An agent's file name without the extension: "KAY/O" becomes "kayo". */
+export const agentSlug = (name: string): string => name.toLowerCase().replace(/[^a-z]/g, "");
+
+/** Where an agent's icon is served from (files live in public/agents). */
+export const agentIconUrl = (name: string): string =>
+  `${import.meta.env.BASE_URL}agents/${agentSlug(name)}.png`;
+
 /**
  * Every playable agent, grouped by role.
  *

@@ -8,7 +8,7 @@ A simple, fun web app for a team of 5 Valorant players. Phase 1 randomises every
 
 - **Users:** one team of 5 friends. No accounts, no public audience.
 - **Devices:** a web page, used on a laptop or phone before a game.
-- **Hosting:** none chosen yet. Phase 1 builds to static files, so any static host works.
+- **Hosting:** the owner's portfolio site, as a Lab tool at `/lab/<id>/` (D14). It builds to static files, so it needs no server. Getting it listed there is #4.
 
 **Stack:** TypeScript, React 19, Vite, Vitest. No backend or database in phase 1.
 
@@ -16,11 +16,12 @@ A simple, fun web app for a team of 5 Valorant players. Phase 1 randomises every
 
 The idea started in the owner's Project Ideas doc (Valorant Team App, 16 October 2026). That doc is the original home of the idea, and it will be retired once this repo's docs hold everything in it.
 
-**Phase 1 (planned, not built):**
+**Phase 1 (built, being tried by the team):**
 1. Comp randomiser with a unique agent per player.
 2. Toggles for the minimum number of agents per role (duelist, initiator, controller, sentinel).
 3. A history-aware toggle so nobody is stuck on the same role. Keeps the last 10 rolls per player and weights against recent roles (D5).
-4. A per-player list of agents they never want (D1).
+4. Per-player bans: agents and whole roles they never want (D1, D11). The code calls the agent list excluded agents.
+5. Players are saved by name. Typing a saved name, or pressing Add beside them in the saved list, fills in their bans, and their history follows the name (D8 to D10). A team has at most 5 players (D12).
 
 **Phase 2 (not scoped):** stats of the week and agent and role stats. These need round-by-round data, which depends on where the match data comes from. That question is open.
 
@@ -42,7 +43,7 @@ Settled-but-unbuilt work lives on GitHub as issues labelled `known-issue`. Open 
 
 ### Match data source for stats
 
-Last alive, damage to teammates, clutches, body shots and kills on feet all need round-level and hit-location data. Options are Riot's official match API (needs an approved production key), an unofficial third-party API such as HenrikDev (round-level data, but a dependency the owner doesn't control), or entering results by hand (only enough for simple stats). It needs a `decision` issue before phase 2 starts.
+Last alive, damage to teammates, clutches, body shots and kills on feet all need round-level and hit-location data. Options are Riot's official match API (needs an approved production key), an unofficial third-party API such as HenrikDev (round-level data, but a dependency the owner doesn't control), or entering results by hand (only enough for simple stats). It is tracked in #3 and has to be settled before phase 2 starts.
 
 ### A shared database
 
@@ -62,7 +63,7 @@ Pieces to slow down on, per the owner's familiarity list. Everything else in the
 
 - Treat this as background, not a task list. When asked to explore, map, or document the repo, use this file to understand intent. Don't treat it as a prompt to start fixing things.
 - When an item above gets resolved, update this file so it stays accurate (strike it through and annotate; don't delete or renumber).
-- Companion docs: `DECISIONS.md` (decision log), `CLAUDE.md` (conventions and standing rules), and the repo's GitHub issues (bugs, deferrals, known issues and open decisions).
-- Docs page: not published (no architecture map or learnings file yet)
+- Companion docs: `DECISIONS.md` (decision log), `LEARNINGS.md` (what was learned building it), `CLAUDE.md` (conventions and standing rules), and the repo's GitHub issues (bugs, deferrals, known issues and open decisions).
+- Docs page: https://claude.ai/artifact/6E4tDFwY7mRTdDeFwcg2hS
 - Plan page: https://claude.ai/artifact/FNB1NvxoTqM3dzzszU6d3R
 - Recap page: not published

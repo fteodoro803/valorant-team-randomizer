@@ -9,8 +9,10 @@ export interface Agent {
 export interface Player {
   id: string;
   name: string;
-  /** Agent names this player never wants to be given. */
+  /** Agent names this player never wants to be given. Called bans on screen. */
   excludedAgents: string[];
+  /** Roles this player never wants to be given, whatever the agent. */
+  bannedRoles: Role[];
 }
 
 export interface Settings {
@@ -27,8 +29,22 @@ export interface Assignment {
   role: Role;
 }
 
+/** A person the app remembers between visits, found again by their name. */
+export interface SavedPlayer {
+  /** The name as it was typed, so it can be shown back with its capital letters. */
+  name: string;
+  excludedAgents: string[];
+  bannedRoles: Role[];
+}
+
+/** Saved players, keyed by `keyForName` of their name. */
+export type Roster = Record<string, SavedPlayer>;
+
 /** Each player's recent picks, oldest first, capped at HISTORY_LIMIT. */
 export type History = Record<string, Assignment[]>;
+
+/** The most players a team can have. */
+export const MAX_PLAYERS = 5;
 
 /** How many recent rolls are remembered for each player. */
 export const HISTORY_LIMIT = 10;
