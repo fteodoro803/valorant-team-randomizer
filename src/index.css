@@ -404,7 +404,7 @@ input:not([type]) {
 .players,
 .rules,
 .history,
-.saved-list {
+.bench-chips {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -751,33 +751,76 @@ input:not([type]) {
   opacity: 0.3;
 }
 
-/* Saved players */
+/* Bench */
 
-.saved {
+.bench {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
-.saved summary {
+.bench-label {
+  margin: 0;
   color: var(--muted);
-  cursor: pointer;
+  font-size: 0.85rem;
 }
 
-.saved-list {
-  margin-top: 8px;
-}
-
-.saved-list li {
+.bench-chips {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 0;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.saved-actions {
+.bench-chip {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bench-chip button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  background: none;
+  border: 0;
+  color: var(--text);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.bench-chip .bench-forget {
+  padding: 0 9px;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.bench-chip button:hover:not(:disabled) {
+  background: var(--line);
+}
+
+.bench-chip .bench-forget:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* A touch screen keeps a larger target than the compact mouse size. */
+@media (pointer: coarse) {
+  .bench-chip button {
+    min-height: 36px;
+  }
+}
+
+.bench-chip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 /* Rules */
@@ -949,9 +992,17 @@ input:not([type]) {
 
   /* Tablet width: the phone's row cards, two across, so each has room for a whole portrait and a long name. */
   .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
     margin-top: 8px;
+  }
+
+  /* Cards keep their grid width and a short last row is centred, so a team of three does not hug the left edge. */
+  .card {
+    flex: 0 0 calc((100% - 12px) / 2);
+    min-width: 0;
   }
 
   /* Rules never gets narrower than its longest row (a switch, CONTROLLER and the stepper), which a tablet in portrait would otherwise squeeze. */
@@ -1048,11 +1099,8 @@ input:not([type]) {
  * Below about 980px a column is too narrow for the longest name (Brimstone) next to a portrait.
  */
 @media (min-width: 980px) {
-  .cards {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
   .card {
+    flex-basis: calc((100% - 4 * 12px) / 5);
     min-height: 0;
   }
 
@@ -1083,7 +1131,7 @@ input:not([type]) {
 
 /*
  * Wide screens with a mouse or trackpad get tighter panels and smaller controls, so the
- * comp and the whole Players panel fit in a short window. A touch screen keeps 44px
+ * comp and the whole Team panel fit in a short window. A touch screen keeps 44px
  * targets, so a tablet doesn't get this block.
  */
 @media (min-width: 721px) and (hover: hover) and (pointer: fine) {

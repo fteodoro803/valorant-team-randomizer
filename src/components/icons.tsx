@@ -33,16 +33,6 @@ export const TrashIcon = (props: IconProps) => (
   </Icon>
 );
 
-/** A person with a plus, for putting a saved person on the team. */
-export const UserPlusIcon = (props: IconProps) => (
-  <Icon {...props}>
-    <circle cx="9" cy="8" r="4" />
-    <path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1" />
-    <path d="M19.5 5.5v5" />
-    <path d="M17 8h5" />
-  </Icon>
-);
-
 /** A person with a minus, for taking someone off the team but keeping them saved. */
 export const UserMinusIcon = (props: IconProps) => (
   <Icon {...props}>
