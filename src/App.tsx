@@ -31,7 +31,7 @@ const defaultPlayers: Player[] = [1, 2, 3, 4, 5].map((n) => ({
 }));
 
 const defaultSettings: Settings = {
-  minPerRole: { duelist: 1, initiator: 1, controller: 1, sentinel: 0 },
+  minPerRole: { duelist: 0, initiator: 0, controller: 0, sentinel: 0 },
   historyAware: true,
 };
 
