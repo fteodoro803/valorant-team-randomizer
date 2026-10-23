@@ -156,6 +156,12 @@ export default function App() {
         <SettingsPanel settings={settings} playerCount={players.length} onChange={setSettings} />
       </div>
       <HistoryView players={toRollPlayers(players)} history={history} onClear={clearHistory} />
+
+      {/* Notice wording is fixed by Riot's "Legal Jibber Jabber" policy, section 6 (#5). */}
+      <footer className="disclaimer">
+        Valorant Team Randomizer was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot
+        Games. Riot Games does not endorse or sponsor this project.
+      </footer>
     </main>
   );
 }
