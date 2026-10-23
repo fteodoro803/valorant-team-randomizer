@@ -126,7 +126,7 @@ export default function App() {
         <div>
           {/* The portfolio's Lab page is one level up from where this is served (D14). */}
           <a className="back-link" href="../">
-            ← Back to Lab
+            ← Back to Projects
           </a>
           <h1>Team randomiser</h1>
         </div>
