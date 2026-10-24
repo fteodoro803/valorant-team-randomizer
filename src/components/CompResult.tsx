@@ -7,6 +7,8 @@ interface Props {
   players: Player[];
   /** Changes on every roll, so the cards are drawn fresh and the reveal plays again. */
   rollId: number;
+  /** Whether the host has locked this comp in. Locked comps are in history, the rest are still just a pick. */
+  locked: boolean;
   /** A party member's page passes these so their own portrait is outlined and each portrait shows who is online. */
   you?: string;
   onlineOf?: (playerId: string) => boolean | undefined;
@@ -33,7 +35,7 @@ function OnlineDot({ name, online }: { name: string; online: boolean | undefined
  * section is a live region, so a screen reader hears the new comp. The role is always in the
  * text, though the strip hides it visually and leaves the colour to say it.
  */
-export function CompResult({ comp, players, rollId, you, onlineOf }: Props) {
+export function CompResult({ comp, players, rollId, locked, you, onlineOf }: Props) {
   const nameOf = (id: string) => {
     const index = players.findIndex((p) => p.id === id);
     return players[index]?.name || `Player ${index + 1}`;
@@ -60,6 +62,9 @@ export function CompResult({ comp, players, rollId, you, onlineOf }: Props) {
           );
         })}
       </ul>
+      <p className="lock-note" data-locked={locked}>
+        {locked ? "Locked in. Saved to history." : "Not locked in yet. Only locked-in rolls are saved to history."}
+      </p>
     </section>
   );
 }

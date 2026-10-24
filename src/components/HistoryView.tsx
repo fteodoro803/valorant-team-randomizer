@@ -27,7 +27,7 @@ export function HistoryView({ players, history, onClear }: Props) {
         </button>
       </div>
       {!hasAny ? (
-        <p className="panel-hint">Nothing yet. Each roll is remembered, up to {HISTORY_LIMIT} per player.</p>
+        <p className="panel-hint">Nothing yet. Each locked-in roll is remembered, up to {HISTORY_LIMIT} per player.</p>
       ) : (
         <>
           <ul className="history">

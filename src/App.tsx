@@ -78,6 +78,8 @@ interface RolledComp {
   players: Player[];
   /** Counts up with every roll, so the cards are drawn fresh and the reveal plays again. */
   id: number;
+  /** True once Lock in has saved this comp to history. A new roll starts unlocked. */
+  locked: boolean;
 }
 
 export default function App() {
@@ -183,9 +185,8 @@ export default function App() {
     result.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
   }, [rollPresses]);
 
-  // 1. Check names, 2. roll, 3. show it, 4. remember it. Every roll counts toward history (D4),
-  //    but only for named players, since an unnamed slot has no one to remember (D10).
-  //    A party member's Roll press arrives here too, and reads the newest state through `live`.
+  // 1. Check names, 2. roll, 3. show it, unlocked. A roll only picks a comp: history is written
+  //    when the host locks it in, so rerolling doesn't skew it (D26). Reads the newest state through `live`.
   const roll = () => {
     setRollPresses((n) => n + 1);
     const { players, roster, history, settings, rolled } = live.current;
@@ -197,19 +198,31 @@ export default function App() {
     try {
       const rollPlayers = toRollPlayers(players);
       const comp = rollComp(rollPlayers, settings, history);
-      const nextHistory = recordRoll(history, comp.filter((pick) => isNamedKey(pick.playerId)));
-      const nextRolled = { comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1 };
+      const nextRolled = { comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1, locked: false };
       live.current.rolled = nextRolled;
-      live.current.history = nextHistory;
       setRolled(nextRolled);
       setError(null);
-      setHistory(nextHistory);
-      historyStore.save(nextHistory);
       commitRoster(rememberPlayers(roster, players));
     } catch (e) {
       if (!(e instanceof RollError)) throw e;
       setError(e.message);
     }
+  };
+
+  // Saves the shown comp to history, once. Only named players who are still on the team count, since an
+  // unnamed slot has no one to remember (D10) and someone removed after the roll shouldn't come back.
+  const lockIn = () => {
+    const { players, history, rolled } = live.current;
+    if (!rolled || rolled.locked) return;
+    const onTeam = new Set(players.map(playerKey));
+    const picks = rolled.comp.filter((pick) => isNamedKey(pick.playerId) && onTeam.has(pick.playerId));
+    const nextHistory = recordRoll(history, picks);
+    const nextRolled = { ...rolled, locked: true };
+    live.current.rolled = nextRolled;
+    live.current.history = nextHistory;
+    setRolled(nextRolled);
+    setHistory(nextHistory);
+    historyStore.save(nextHistory);
   };
 
   const clearHistory = () => {
@@ -251,7 +264,7 @@ export default function App() {
 
   // 1. A new device must send a join first. It is refused if the name is taken or the team is full.
   // 2. Later, its bans replace the member's bans and are saved to the roster (so they survive the
-  //    member leaving), and its Roll presses roll for everyone.
+  //    member leaving). Only the host rolls and locks in, so a member sends nothing else.
   function handleMemberMessage(peerId: string, message: MemberMessage) {
     if (message.type === "join") {
       // A member who has gone quiet is probably this same person coming back from sleep, so their name
@@ -278,10 +291,6 @@ export default function App() {
       if (leaver) removePlayer(leaver, false);
       return;
     }
-    if (message.type === "roll") {
-      roll();
-      return;
-    }
     const next = setMemberBans(live.current.players, playerId, message);
     commitPlayers(next);
     commitRoster(rememberPlayers(live.current.roster, next.filter((p) => p.id === playerId)));
@@ -294,7 +303,12 @@ export default function App() {
     host.broadcast({
       type: "snapshot",
       team: teamForMembers(players),
-      rolled: rolled && { comp: rolled.comp, players: rolled.players.map(({ id, name }) => ({ id, name })), id: rolled.id },
+      rolled: rolled && {
+        comp: rolled.comp,
+        players: rolled.players.map(({ id, name }) => ({ id, name })),
+        id: rolled.id,
+        locked: rolled.locked,
+      },
       error,
     });
     // `host` changes every render, so listing it would resend on every render instead of on every change.
@@ -422,7 +436,7 @@ export default function App() {
     setScreen("main");
   };
 
-  // A friend's page. Its Roll bar is pinned to the bottom, so the toast sits above it.
+  // A friend's page. It has no Roll bar, so the toast can sit lower.
   if (memberActive && me) {
     return (
       <>
@@ -433,10 +447,9 @@ export default function App() {
           step={member.step}
           shared={shared}
           onChange={changeMyBans}
-          onRoll={() => member.send({ type: "roll" })}
           onLeave={leaveParty}
         />
-        <Toast toast={toast} onClose={closeToast} />
+        <Toast toast={toast} low onClose={closeToast} />
       </>
     );
   }
@@ -453,7 +466,7 @@ export default function App() {
 
   return (
     <main className="app">
-      {/* Header: title on the left, Roll on the right on wide screens and pinned to the bottom on phones */}
+      {/* Header: title on the left, Roll and Lock in on the right on wide screens and pinned to the bottom on phones */}
       <header className="app-head">
         <div>
           <div className="head-links">
@@ -471,6 +484,9 @@ export default function App() {
           <button type="button" className="roll" onClick={roll}>
             Roll
           </button>
+          <button type="button" className="roll lock" disabled={!rolled || rolled.locked} onClick={lockIn}>
+            {rolled?.locked ? "Locked in" : "Lock in"}
+          </button>
         </div>
       </header>
 
@@ -482,7 +498,7 @@ export default function App() {
           </p>
         )}
         {rolled ? (
-          <CompResult comp={rolled.comp} players={rolled.players} rollId={rolled.id} />
+          <CompResult comp={rolled.comp} players={rolled.players} rollId={rolled.id} locked={rolled.locked} />
         ) : (
           <p className="empty">Press Roll to give everyone an agent for the next game.</p>
         )}

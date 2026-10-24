@@ -68,8 +68,7 @@ describe("parseToHost", () => {
     expect(parsed).toEqual({ type: "bans", excludedAgents: ["Sage"], bannedRoles: ["duelist"] });
   });
 
-  it("reads a roll press, a leave and a ping", () => {
-    expect(parseToHost({ type: "roll" })).toEqual({ type: "roll" });
+  it("reads a leave and a ping", () => {
     expect(parseToHost({ type: "leave" })).toEqual({ type: "leave" });
     expect(parseToHost({ type: "ping" })).toEqual({ type: "ping" });
   });
@@ -77,6 +76,8 @@ describe("parseToHost", () => {
   it("rejects anything else", () => {
     expect(parseToHost(null)).toBeNull();
     expect(parseToHost("roll")).toBeNull();
+    // Only the host rolls, so an old page's Roll press is ignored.
+    expect(parseToHost({ type: "roll" })).toBeNull();
     expect(parseToHost({ type: "join", name: "   ", ...noBans })).toBeNull();
     expect(parseToHost({ type: "join", name: 3, ...noBans })).toBeNull();
     expect(parseToHost({ type: "bans", excludedAgents: "Sage", bannedRoles: [] })).toBeNull();
@@ -92,6 +93,7 @@ describe("parseToMember", () => {
       comp: [{ playerId: "name:sam", agent: "Jett", role: "duelist" }],
       players: [{ id: "name:sam", name: "Sam" }],
       id: 3,
+      locked: false,
     },
     error: null,
   };
@@ -117,6 +119,11 @@ describe("parseToMember", () => {
     const bad = (pick: object) => ({ ...snapshot, rolled: { ...snapshot.rolled, comp: [pick] } });
     expect(parseToMember(bad({ playerId: "a", agent: "Nobody", role: "duelist" }))).toBeNull();
     expect(parseToMember(bad({ playerId: "a", agent: "Jett", role: "sentinel" }))).toBeNull();
+  });
+
+  it("rejects a roll without a locked flag", () => {
+    const { locked: _locked, ...unflagged } = snapshot.rolled;
+    expect(parseToMember({ ...snapshot, rolled: unflagged })).toBeNull();
   });
 
   it("rejects a team that is too big or badly shaped", () => {
