@@ -89,6 +89,8 @@ export default function App() {
   // History filed under old player slots can't be tied to anyone, so it is dropped on load (D8).
   const [history, setHistory] = useState(() => keepNamedHistory(historyStore.load()));
   const [rolled, setRolled] = useState<RolledComp | null>(null);
+  // Players whose picks are locked, so Roll leaves them alone (D27). Kept across rerolls until Lock in or Clear.
+  const [kept, setKept] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   // Counts every press of Roll, successful or not, so the page can scroll to what it produced.
   const [rollPresses, setRollPresses] = useState(0);
@@ -122,9 +124,9 @@ export default function App() {
   // The newest team, roster, history, settings and roll, kept current as soon as a handler changes them.
   // Messages from party members arrive outside React's renders, so reading state from the render
   // that created the handler could miss the message just before it.
-  const live = useRef({ players, roster, history, settings, rolled });
+  const live = useRef({ players, roster, history, settings, rolled, kept });
   useEffect(() => {
-    live.current = { players, roster, history, settings, rolled };
+    live.current = { players, roster, history, settings, rolled, kept };
   });
   const commitPlayers = (next: Player[]) => {
     live.current.players = next;
@@ -186,10 +188,12 @@ export default function App() {
   }, [rollPresses]);
 
   // 1. Check names, 2. roll, 3. show it, unlocked. A roll only picks a comp: history is written
-  //    when the host locks it in, so rerolling doesn't skew it (D26). Reads the newest state through `live`.
+  //    when the host locks it in, so rerolling doesn't skew it (D26). If some players' picks are
+  //    locked (D27) and the comp isn't locked in yet, only the others are rolled.
+  //    Reads the newest state through `live`.
   const roll = () => {
     setRollPresses((n) => n + 1);
-    const { players, roster, history, settings, rolled } = live.current;
+    const { players, roster, history, settings, rolled, kept } = live.current;
     const duplicate = findDuplicateName(players);
     if (duplicate) {
       setError(`Two players are both called ${duplicate}. Give them different names.`);
@@ -197,7 +201,15 @@ export default function App() {
     }
     try {
       const rollPlayers = toRollPlayers(players);
-      const comp = rollComp(rollPlayers, settings, history);
+      const keptNow = rolled && !rolled.locked ? kept.filter((id) => rollPlayers.some((p) => p.id === id)) : [];
+      const comp = rollComp(
+        rollPlayers,
+        settings,
+        history,
+        undefined,
+        undefined,
+        keptNow.length > 0 && rolled ? { current: rolled.comp, keptIds: keptNow } : undefined,
+      );
       const nextRolled = { comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1, locked: false };
       live.current.rolled = nextRolled;
       setRolled(nextRolled);
@@ -207,6 +219,21 @@ export default function App() {
       if (!(e instanceof RollError)) throw e;
       setError(e.message);
     }
+  };
+
+  // Locking a player's pick keeps it through the next Roll. Only a comp that isn't locked in yet can be edited this way.
+  const toggleKept = (playerId: string) => {
+    if (!live.current.rolled || live.current.rolled.locked) return;
+    const next = live.current.kept.includes(playerId)
+      ? live.current.kept.filter((id) => id !== playerId)
+      : [...live.current.kept, playerId];
+    live.current.kept = next;
+    setKept(next);
+  };
+
+  const clearKept = () => {
+    live.current.kept = [];
+    setKept([]);
   };
 
   // Saves the shown comp to history, once. Only named players who are still on the team count, since an
@@ -223,6 +250,8 @@ export default function App() {
     setRolled(nextRolled);
     setHistory(nextHistory);
     historyStore.save(nextHistory);
+    // The next game starts with nobody locked.
+    clearKept();
   };
 
   const clearHistory = () => {
@@ -437,6 +466,11 @@ export default function App() {
   };
 
   // A friend's page. It has no Roll bar, so the toast can sit lower.
+  // Locked players who are still on the team, and whether that is everyone, in which case there is nothing to roll.
+  const rollPlayerIds = toRollPlayers(players).map((p) => p.id);
+  const keptShown = rolled && !rolled.locked ? kept.filter((id) => rollPlayerIds.includes(id)) : [];
+  const allKept = keptShown.length > 0 && rollPlayerIds.every((id) => keptShown.includes(id));
+
   if (memberActive && me) {
     return (
       <>
@@ -481,7 +515,7 @@ export default function App() {
           <h1>Team randomiser</h1>
         </div>
         <div className="roll-bar">
-          <button type="button" className="roll" onClick={roll}>
+          <button type="button" className="roll" disabled={allKept} onClick={roll}>
             Roll
           </button>
           <button type="button" className="roll lock" disabled={!rolled || rolled.locked} onClick={lockIn}>
@@ -498,7 +532,15 @@ export default function App() {
           </p>
         )}
         {rolled ? (
-          <CompResult comp={rolled.comp} players={rolled.players} rollId={rolled.id} locked={rolled.locked} />
+          <CompResult
+            comp={rolled.comp}
+            players={rolled.players}
+            locked={rolled.locked}
+            kept={keptShown}
+            allKept={allKept}
+            onToggleKept={toggleKept}
+            onClearKept={clearKept}
+          />
         ) : (
           <p className="empty">Press Roll to give everyone an agent for the next game.</p>
         )}

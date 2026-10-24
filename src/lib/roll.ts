@@ -11,9 +11,20 @@ const MAX_ROLE_DRAWS = 50;
 const noCompMessage =
   "No valid comp fits these settings. Try lowering a role minimum or trimming someone's bans.";
 
+/** A comp that is being partly rerolled: the picks on screen now, and the players whose picks stay. */
+export interface Reroll {
+  current: Assignment[];
+  keptIds: readonly string[];
+}
+
 /**
  * Rolls a unique agent for every player, honouring role minimums, excluded
  * agents and (optionally) each player's recent roles.
+ *
+ * With `reroll`, the players in `keptIds` keep their current picks and only the
+ * others are rolled. Kept roles count toward the minimums, kept agents can't be
+ * given again, and a rerolled player never gets the agent they had, since they
+ * asked for a change. The result is still in team order.
  *
  * Pure: all randomness comes from `rng`, so a roll can be replayed in tests.
  * Throws a RollError when the settings can't be met.
@@ -24,23 +35,56 @@ export function rollComp(
   history: History,
   rng: () => number = Math.random,
   agents: Agent[] = AGENTS,
+  reroll?: Reroll,
 ): Assignment[] {
-  validate(players, settings, agents);
+  // 1. Split the team into the picks that stay and the players who are rolled, and take the
+  //    kept agents and roles out of what the rolled players can be given.
+  const kept = reroll ? reroll.current.filter((pick) => reroll.keptIds.includes(pick.playerId)) : [];
+  const keptIds = new Set(kept.map((pick) => pick.playerId));
+  const open = players
+    .filter((p) => !keptIds.has(p.id))
+    .map((p) => withoutCurrentAgent(p, reroll?.current));
+  if (open.length === 0) throw new RollError("Everyone is locked. Tap someone to change them.");
+  const pool = agents.filter((a) => !kept.some((pick) => pick.agent === a.name));
+  // A full roll checks the minimums as typed, so a bad one is still reported rather than clamped away.
+  const owed: Settings =
+    kept.length === 0
+      ? settings
+      : {
+          ...settings,
+          minPerRole: Object.fromEntries(
+            ROLES.map((role) => [role, Math.max(0, settings.minPerRole[role] - kept.filter((k) => k.role === role).length)]),
+          ) as Settings["minPerRole"],
+        };
 
-  const weights = players.map((player) =>
-    ROLES.map((role) => roleWeight(player, role, settings, history, agents)),
+  validate(open, owed, pool);
+
+  const weights = open.map((player) =>
+    ROLES.map((role) => roleWeight(player, role, owed, history, pool)),
   );
-  const minimums = ROLES.map((role) => settings.minPerRole[role]);
+  const minimums = ROLES.map((role) => owed.minPerRole[role]);
 
-  // 1. Draw the whole team's roles at once, then find agents to fit. If the agents
+  // 2. Draw the rolled players' roles at once, then find agents to fit. If the agents
   //    don't fit (rare, only with heavy exclusions), draw the roles again.
   for (let attempt = 0; attempt < MAX_ROLE_DRAWS; attempt++) {
     const roles = drawRoles(weights, minimums, rng);
     if (roles === null) break;
-    const comp = pickAgents(players, roles, agents, rng);
-    if (comp !== null) return comp;
+    const rolled = pickAgents(open, roles, pool, rng);
+    if (rolled !== null) {
+      // 3. Put the kept picks back, so the comp stays in the team's order.
+      return players.map(
+        (p) => kept.find((k) => k.playerId === p.id) ?? rolled.find((r) => r.playerId === p.id)!,
+      );
+    }
   }
   throw new RollError(noCompMessage);
+}
+
+/** The player with the agent they have now added to their excluded list, so a reroll gives something new. */
+function withoutCurrentAgent(player: Player, current: Assignment[] | undefined): Player {
+  const now = current?.find((pick) => pick.playerId === player.id)?.agent;
+  if (now === undefined || player.excludedAgents.includes(now)) return player;
+  return { ...player, excludedAgents: [...player.excludedAgents, now] };
 }
 
 /**

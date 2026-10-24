@@ -68,7 +68,6 @@ export function MemberView({ me, code, status, step, shared, onChange, onLeave }
           <CompResult
             comp={shared.rolled.comp}
             players={players}
-            rollId={shared.rolled.id}
             locked={shared.rolled.locked}
             you={me.name}
             onlineOf={onlineOf}
