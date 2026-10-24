@@ -75,6 +75,7 @@ An older idea of the owner's: a browser extension that screenshots player econom
 Pieces to slow down on, per the owner's familiarity list. Everything else in the stack is at normal speed.
 
 - **Vite**: new, builds on Meteor (sibling move: same npm and ES module world, no built-in server or database).
+- **WebRTC (party codes)**: new, builds on Meteor pub/sub (same "changes pushed to everyone" idea, but there is no server in the middle to hold the data).
 
 ## How to use this file
 
