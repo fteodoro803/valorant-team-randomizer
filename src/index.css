@@ -332,61 +332,125 @@ input:not([type]) {
 
 .cards {
   display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
 
-/* Phone: a row, with the portrait on a solid role-colour square on the right. */
+/*
+ * Phone: a strip of portraits. Five across, each a role-colour square with the agent and the
+ * player under it, so the comp takes one short band instead of more than a screen (D23).
+ * The role is left to the colour and the agent's name, and stays in the text for screen readers.
+ */
 .card {
   display: flex;
-  align-items: stretch;
-  min-height: 92px;
-  overflow: hidden;
-  background: var(--role-tint);
-  border-radius: var(--radius);
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
 }
 
 .card-art {
-  order: 2;
-  flex: none;
-  width: 92px;
-  height: 92px;
-  object-fit: cover;
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   background: var(--role);
+  border-radius: 10px;
+}
+
+.card-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+/* A person who has not been given an agent yet: an empty square with their initial. */
+.card.slot {
+  --role: var(--panel-raised);
+  --role-tint: var(--panel);
+}
+
+.card-initial {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+
+/* The member's own portrait is outlined, so they find themselves at a glance. */
+.card[data-you="true"] .card-art {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* The online dot sits on the portrait's top right corner, ringed in the page colour so it reads over any art. */
+.card-art .status-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  z-index: 1;
+  width: 13px;
+  height: 13px;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.card-art .status-dot[data-online="false"] {
+  background: var(--bg);
 }
 
 .card-body {
   display: flex;
-  flex: 1;
   flex-direction: column;
+  align-items: center;
+  width: 100%;
   min-width: 0;
-  padding: 12px 16px;
 }
 
+/* Visually hidden on the strip, back in view in the wide rows below. */
 .card-role {
-  color: var(--role-text);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-/* Pushes the agent and player to the bottom, so the role label sits alone at the top. */
 .card-agent {
-  margin-top: auto;
+  max-width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--role-text);
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 2.1rem;
-  line-height: 1;
-  letter-spacing: 0.01em;
+  /* Small enough that Brimstone, the longest name, fits a 360px phone without an ellipsis. */
+  font-size: 0.85rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .card-player {
-  color: var(--text-soft);
-  font-size: 0.85rem;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* The five cards appear together, and not at all for anyone who asked for less motion. */
@@ -689,6 +753,13 @@ input:not([type]) {
   text-transform: uppercase;
 }
 
+/* The picker's sections, in the dialog and on a member's page alike. */
+.ban-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -976,6 +1047,15 @@ input:not([type]) {
     margin-bottom: 8px;
   }
 
+  /* Beside Roll on wide screens, a member's title block is only as wide as it needs to be. */
+  .member-head > div:first-child {
+    flex: 0 1 auto;
+  }
+
+  .member-head .head-links {
+    justify-content: flex-start;
+  }
+
   h1 {
     font-size: 2.3rem;
   }
@@ -1010,7 +1090,79 @@ input:not([type]) {
   /* Cards keep their grid width and a short last row is centred, so a team of three does not hug the left edge. */
   .card {
     flex: 0 0 calc((100% - 12px) / 2);
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
     min-width: 0;
+    min-height: 92px;
+    overflow: hidden;
+    background: var(--role-tint);
+    border-radius: var(--radius);
+    text-align: left;
+  }
+
+  /* From here the comp is rows again: the portrait on a solid role-colour square on the right, the whole portrait showing. */
+  .card-art {
+    order: 2;
+    flex: none;
+    width: 92px;
+    height: 92px;
+    aspect-ratio: auto;
+    border-radius: 0;
+  }
+
+  .card-art img {
+    border-radius: 0;
+  }
+
+  .card[data-you="true"] .card-art {
+    outline: 0;
+  }
+
+  .card[data-you="true"] {
+    outline: 2px solid var(--text);
+    outline-offset: -2px;
+  }
+
+  .card-art .status-dot {
+    top: 8px;
+    right: 8px;
+  }
+
+  .card-body {
+    flex: 1;
+    align-items: stretch;
+    width: auto;
+    padding: 12px 16px;
+  }
+
+  .card-role {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    color: var(--role-text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Pushes the agent and player to the bottom, so the role label sits alone at the top. */
+  .card-agent {
+    margin-top: auto;
+    color: var(--text);
+    font-size: 2.1rem;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .card-player {
+    color: var(--text-soft);
+    font-size: 0.85rem;
   }
 
   /* Rules never gets narrower than its longest row (a switch, CONTROLLER and the stepper), which a tablet in portrait would otherwise squeeze. */
@@ -1166,6 +1318,10 @@ input:not([type]) {
     height: 36px;
   }
 
+  .add-player {
+    height: 36px;
+  }
+
   .panel-head .ghost {
     height: 34px;
   }
@@ -1214,6 +1370,7 @@ input:not([type]) {
   color: var(--muted);
 }
 
+/* Host is tinted rather than solid, so it is a clear choice without out-shouting the Join button. The tint is the duelist's. */
 .entry-create {
   display: flex;
   flex-direction: column;
@@ -1221,16 +1378,16 @@ input:not([type]) {
   gap: 2px;
   width: 100%;
   padding: 16px 18px;
-  background: var(--accent);
-  border: 0;
+  background: #3a2029;
+  border: 1px solid var(--accent);
   border-radius: var(--radius);
-  color: #fff;
+  color: var(--text);
   text-align: left;
-  transition: background-color 0.15s;
+  transition: border-color 0.15s;
 }
 
 .entry-create:hover {
-  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .entry-title {
@@ -1264,14 +1421,40 @@ input:not([type]) {
   color: var(--muted);
 }
 
-.entry-fields {
+.entry-sub {
+  margin: 0;
+  color: var(--muted);
+}
+
+.entry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entry-field .section-label {
+  margin: 0;
+}
+
+/* Four boxes for the four characters. Wide enough to tap, and large so the code reads across a table. */
+.code-boxes {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 6rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.entry-code {
+.code-boxes input {
+  height: 56px;
+  padding: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.9rem;
+  text-align: center;
   text-transform: uppercase;
+}
+
+.entry-submit {
+  width: 100%;
 }
 
 .entry-problem {
@@ -1298,12 +1481,47 @@ input:not([type]) {
     font-size: 2.1rem;
   }
 
-  .entry-fields {
-    grid-template-columns: minmax(0, 1fr) 7rem;
-  }
+}
+
+/* A member's header: the party code under the title, and Leave party beside the back link, so it is not squeezed off the title's row. */
+.member-head > div:first-child {
+  flex: 1 1 100%;
+}
+
+.member-head .head-links {
+  justify-content: space-between;
+}
+
+.party-line {
+  margin: 2px 0 0;
+  color: var(--accent-text);
+  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  user-select: all;
 }
 
 /* Team panel: the code in brackets beside the heading, the buttons, and the chip while hosting */
+
+/* Add player: a dashed row the height of a player row, under the last one, where the next player would be. */
+.add-player {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.add-player:hover:not(:disabled) {
+  background: var(--line);
+  border-color: var(--muted);
+}
 
 .party-code-tag {
   margin-left: 8px;
@@ -1317,32 +1535,18 @@ input:not([type]) {
   gap: 8px;
 }
 
-.party-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 4px 4px 12px;
-  background: var(--bg);
-  border: 1px solid #3ec9b0;
-  border-radius: var(--radius-sm);
-}
-
-.party-chip-text {
-  flex: 1;
-  min-width: 0;
+/* The advice about hosting from a computer is for wide screens, where a line under the heading costs nothing on a phone's short screen. */
+.party-hint {
+  display: none;
+  margin: 0;
   color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.4;
 }
 
-/* The advice about hosting from a computer is for wide screens, where it fits on the chip's line. */
-.party-chip-hint {
-  display: none;
-}
-
 @media (min-width: 721px) {
-  .party-chip-hint {
-    display: inline;
+  .party-hint {
+    display: block;
   }
 }
 

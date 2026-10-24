@@ -428,6 +428,7 @@ export default function App() {
       <>
         <MemberView
           me={me}
+          code={lastParty?.code ?? attempt?.code ?? ""}
           status={member.status}
           step={member.step}
           shared={shared}
@@ -497,7 +498,6 @@ export default function App() {
           party={{
             code: host.code,
             status: host.status,
-            inParty: players.filter((p) => p.member === "online").length,
             onStart: host.start,
             onStop: stopParty,
           }}

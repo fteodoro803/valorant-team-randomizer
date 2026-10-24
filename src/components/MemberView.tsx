@@ -1,14 +1,16 @@
-import { useState } from "react";
 import type { JoinStep, MemberStatus } from "../hooks/useParty";
 import type { SharedRoll, TeamMember } from "../lib/party";
+import { keyForName } from "../lib/roster";
 import type { Player } from "../lib/types";
-import { BansDialog } from "./BansDialog";
-import { CompResult } from "./CompResult";
+import { BanPicker } from "./BanPicker";
+import { CompResult, TeamStrip } from "./CompResult";
 import { Disclaimer } from "./Disclaimer";
 
 interface Props {
   /** The member as they are on their own device. Their bans are saved here and sent to the host. */
   me: Player;
+  /** The party's code, shown under the title. */
+  code: string;
   status: MemberStatus;
   /** Where a join is up to, shown while the member waits to be let in. */
   step: JoinStep;
@@ -20,29 +22,40 @@ interface Props {
 }
 
 /**
- * The page a party member sees: their own bans, the shared comp, and who else is on the team.
+ * The page a party member sees: the team as a strip of portraits, then their own bans.
  *
  * The member never holds the team or rolls anything. They send their bans and Roll
  * presses to the host, and show whatever the host sends back, so every phone matches.
+ * The strip is the team list too: before a roll it shows empty portraits with names, after
+ * a roll the agents, and the online dot sits on each portrait, so there is no Team panel.
  */
-export function MemberView({ me, status, step, shared, onChange, onRoll, onLeave }: Props) {
-  const [bansOpen, setBansOpen] = useState(false);
+export function MemberView({ me, code, status, step, shared, onChange, onRoll, onLeave }: Props) {
   const joined = status === "joined" && shared !== null;
-  const banCount = me.excludedAgents.length + me.bannedRoles.length;
+  const team = shared?.team ?? [];
 
   // The cards only need names, so the host's roll is turned back into players without bans.
   const players: Player[] =
     shared?.rolled?.players.map((p) => ({ id: p.id, name: p.name, excludedAgents: [], bannedRoles: [] })) ?? [];
+  const onlineOf = (playerId: string) => {
+    const name = players.find((p) => p.id === playerId)?.name ?? "";
+    return team.find((m) => keyForName(m.name) === keyForName(name))?.online;
+  };
 
   return (
     <main className="app">
-      {/* Header: title, and Roll pinned to the bottom on phones like the host's */}
-      <header className="app-head">
+      {/* Header: title and party code, Leave party beside the back link, and Roll pinned to the bottom on phones like the host's */}
+      <header className="app-head member-head">
         <div>
-          <a className="back-link" href="../">
-            ← Back to Projects
-          </a>
+          <div className="head-links">
+            <a className="back-link" href="../">
+              ← Back to Projects
+            </a>
+            <button type="button" className="menu-link" onClick={onLeave}>
+              {joined ? "Leave party" : "Cancel"}
+            </button>
+          </div>
           <h1>Team randomiser</h1>
+          {code && <p className="party-line">Party {code}</p>}
         </div>
         <div className="roll-bar">
           <button type="button" className="roll" disabled={!joined} onClick={onRoll}>
@@ -51,7 +64,7 @@ export function MemberView({ me, status, step, shared, onChange, onRoll, onLeave
         </div>
       </header>
 
-      {/* Result: the host's error, the shared comp, or a prompt */}
+      {/* Result: the host's error, then the comp, the waiting strip or a connecting line */}
       <div className="result">
         {shared?.error && (
           <p role="alert" className="error">
@@ -59,53 +72,30 @@ export function MemberView({ me, status, step, shared, onChange, onRoll, onLeave
           </p>
         )}
         {shared?.rolled ? (
-          <CompResult comp={shared.rolled.comp} players={players} rollId={shared.rolled.id} />
+          <CompResult
+            comp={shared.rolled.comp}
+            players={players}
+            rollId={shared.rolled.id}
+            you={me.name}
+            onlineOf={onlineOf}
+          />
+        ) : joined ? (
+          <TeamStrip team={team} you={me.name} />
         ) : (
-          <p className="empty">{joined
-              ? "Press Roll to give everyone an agent for the next game."
-              : step === "asking"
-                ? "Asking the host to let you in…"
-                : "Connecting to the party…"}</p>
+          <p className="empty">{step === "asking" ? "Asking the host to let you in…" : "Connecting to the party…"}</p>
         )}
       </div>
 
-      {/* You: bans, saved on this device */}
+      {/* You: bans, saved on this device and sent to the host as they change */}
       <section className="panel">
         <div className="panel-head">
-          <h2 className="section-label">{me.name}</h2>
-          <button type="button" className="ghost" onClick={() => setBansOpen(true)}>
-            Bans{banCount > 0 ? ` (${banCount})` : ""}
-          </button>
+          <h2 className="section-label">Your bans</h2>
+          <span className="panel-hint">Saved on this device and sent to the host</span>
         </div>
-        <p className="panel-hint">Your bans are saved on this device and sent to the host as you change them.</p>
-      </section>
-
-      {/* Team: who the host has */}
-      <section className="panel party-team">
-        <div className="panel-head">
-          <h2 className="section-label">Team</h2>
-          <button type="button" className="ghost" onClick={onLeave}>
-            {joined ? "Leave party" : "Cancel"}
-          </button>
-        </div>
-        <ul className="team-list">
-          {(shared?.team ?? []).map((member) => (
-            <li key={member.name} data-online={member.online}>
-              <span>{member.name}</span>
-              <span
-                className="status-dot"
-                data-online={member.online}
-                role="img"
-                aria-label={`${member.name} is ${member.online ? "in the party" : "offline"}`}
-              />
-            </li>
-          ))}
-        </ul>
+        <BanPicker player={me} roleHeading="Roles you never want" onChange={onChange} />
       </section>
 
       <Disclaimer />
-
-      {bansOpen && <BansDialog player={me} label={me.name} onChange={onChange} onClose={() => setBansOpen(false)} />}
     </main>
   );
 }

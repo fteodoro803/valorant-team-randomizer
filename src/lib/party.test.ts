@@ -6,6 +6,7 @@ import {
   MAX_NAME_LENGTH,
   newPartyCode,
   normaliseCode,
+  spreadCode,
   parseToHost,
   parseToMember,
   peerIdForCode,
@@ -195,5 +196,26 @@ describe("member updates", () => {
 
   it("leaves unnamed slots out of the team members see", () => {
     expect(teamForMembers([player("a", "Host"), player("b")])).toEqual([{ name: "Host", online: true }]);
+  });
+
+  describe("spreadCode", () => {
+    const empty = ["", "", "", ""];
+
+    it("puts one character in its box and moves to the next", () => {
+      expect(spreadCode(empty, 1, "k")).toEqual({ boxes: ["", "K", "", ""], focus: 2 });
+    });
+
+    it("fills every box from a pasted code, whichever box it was pasted into first", () => {
+      expect(spreadCode(empty, 0, "k7-qd")).toEqual({ boxes: ["K", "7", "Q", "D"], focus: 3 });
+      expect(spreadCode(["A", "B", "", ""], 2, "K7")).toEqual({ boxes: ["A", "B", "K", "7"], focus: 3 });
+    });
+
+    it("drops anything past the fourth box and stays on the last one", () => {
+      expect(spreadCode(["A", "B", "C", ""], 3, "XYZ")).toEqual({ boxes: ["A", "B", "C", "X"], focus: 3 });
+    });
+
+    it("clears a box that was emptied without moving", () => {
+      expect(spreadCode(["K", "7", "Q", "D"], 2, "")).toEqual({ boxes: ["K", "7", "", "D"], focus: 2 });
+    });
   });
 });
