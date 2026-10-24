@@ -17,19 +17,17 @@ interface Props {
   /** What the host last sent: who is on the team, the latest roll, and why a roll failed. */
   shared: { team: TeamMember[]; rolled: SharedRoll | null; error: string | null } | null;
   onChange: (patch: Partial<Player>) => void;
-  onRoll: () => void;
   onLeave: () => void;
 }
 
 /**
  * The page a party member sees: the team as a strip of portraits, then their own bans.
  *
- * The member never holds the team or rolls anything. They send their bans and Roll
- * presses to the host, and show whatever the host sends back, so every phone matches.
+ * The member never holds the team or rolls anything. They send their bans to the host, and show whatever the host sends back, so every phone matches.
  * The strip is the team list too: before a roll it shows empty portraits with names, after
  * a roll the agents, and the online dot sits on each portrait, so there is no Team panel.
  */
-export function MemberView({ me, code, status, step, shared, onChange, onRoll, onLeave }: Props) {
+export function MemberView({ me, code, status, step, shared, onChange, onLeave }: Props) {
   const joined = status === "joined" && shared !== null;
   const team = shared?.team ?? [];
 
@@ -43,7 +41,7 @@ export function MemberView({ me, code, status, step, shared, onChange, onRoll, o
 
   return (
     <main className="app">
-      {/* Header: title and party code, Leave party beside the back link, and Roll pinned to the bottom on phones like the host's */}
+      {/* Header: title and party code and Leave party beside the back link */}
       <header className="app-head member-head">
         <div>
           <div className="head-links">
@@ -56,11 +54,6 @@ export function MemberView({ me, code, status, step, shared, onChange, onRoll, o
           </div>
           <h1>Team randomiser</h1>
           {code && <p className="party-line">Party {code}</p>}
-        </div>
-        <div className="roll-bar">
-          <button type="button" className="roll" disabled={!joined} onClick={onRoll}>
-            Roll
-          </button>
         </div>
       </header>
 
@@ -76,6 +69,7 @@ export function MemberView({ me, code, status, step, shared, onChange, onRoll, o
             comp={shared.rolled.comp}
             players={players}
             rollId={shared.rolled.id}
+            locked={shared.rolled.locked}
             you={me.name}
             onlineOf={onlineOf}
           />

@@ -247,8 +247,13 @@ input:not([type]) {
   border-top: 1px solid var(--line);
 }
 
+.roll-bar {
+  display: flex;
+  gap: 10px;
+}
+
 .roll {
-  width: 100%;
+  flex: 1;
   height: 56px;
   border: 0;
   border-radius: 12px;
@@ -264,6 +269,30 @@ input:not([type]) {
 
 .roll:hover:not(:disabled) {
   background: var(--accent-hover);
+}
+
+/* Lock in sits beside Roll but stays quieter, since Roll is the big action and Lock in only confirms. */
+.roll.lock {
+  flex: 0 0 38%;
+  background: transparent;
+  color: var(--accent-text);
+  border: 2px solid var(--accent);
+}
+
+.roll.lock:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Under the comp: says whether it has reached history yet. */
+.lock-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.lock-note[data-locked="true"] {
+  color: var(--accent-text);
 }
 
 .roll.small {
@@ -1072,10 +1101,15 @@ input:not([type]) {
   }
 
   .roll {
+    flex: none;
     width: auto;
     height: 52px;
     padding: 0 44px;
     font-size: 1.65rem;
+  }
+
+  .roll.lock {
+    flex: none;
   }
 
   /* Tablet width: the phone's row cards, two across, so each has room for a whole portrait and a long name. */

@@ -62,7 +62,6 @@ export interface MemberBans {
 export type ToHost =
   | ({ type: "join"; name: string } & MemberBans)
   | ({ type: "bans" } & MemberBans)
-  | { type: "roll" }
   | { type: "leave" }
   | { type: "ping" };
 
@@ -86,6 +85,8 @@ export interface SharedRoll {
   comp: Assignment[];
   players: { id: string; name: string }[];
   id: number;
+  /** True once the host has locked this comp in, which is when it counts toward history. */
+  locked: boolean;
 }
 
 /** What the host sends to members. The first snapshot a member gets also means they are in. */
@@ -123,7 +124,6 @@ function cleanBans(value: Record<string, unknown>): MemberBans | null {
 /** Reads a message from a member's device, or null if it isn't one we understand. */
 export function parseToHost(raw: unknown): ToHost | null {
   if (!isRecord(raw)) return null;
-  if (raw.type === "roll") return { type: "roll" };
   if (raw.type === "ping") return { type: "ping" };
   if (raw.type === "leave") return { type: "leave" };
   const bans = cleanBans(raw);
@@ -153,13 +153,13 @@ function parseSharedRoll(value: unknown): SharedRoll | null | undefined {
   if (value === null) return null;
   if (!isRecord(value) || !Array.isArray(value.players) || value.players.length > MAX_PLAYERS) return undefined;
   const comp = parseComp(value.comp);
-  if (comp === null || !Number.isInteger(value.id)) return undefined;
+  if (comp === null || !Number.isInteger(value.id) || typeof value.locked !== "boolean") return undefined;
   const players: SharedRoll["players"] = [];
   for (const p of value.players) {
     if (!isRecord(p) || typeof p.id !== "string" || typeof p.name !== "string") return undefined;
     players.push({ id: p.id, name: cleanName(p.name) });
   }
-  return { comp, players, id: value.id as number };
+  return { comp, players, id: value.id as number, locked: value.locked };
 }
 
 /** Reads a message from the host, or null if it isn't one we understand. */
