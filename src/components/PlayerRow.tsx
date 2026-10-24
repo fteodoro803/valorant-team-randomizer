@@ -50,6 +50,25 @@ export function PlayerRow({ player, index, roster, players, canRemove, onUpdate,
     onUpdate({ name: saved.name, excludedAgents: saved.excludedAgents, bannedRoles: saved.bannedRoles });
   };
 
+  // A party member's name and bans come from their own device, so the host sees the name and can only remove them.
+  if (player.member) {
+    return (
+      <li className="player member" data-online={player.member === "online"}>
+        <span className="member-name">{player.name}</span>
+        <span className="member-tag">{player.member === "online" ? "In party" : "Offline"}</span>
+        <PlayerMenu
+          label={label}
+          named
+          managed
+          banCount={0}
+          canRemove={canRemove}
+          onBans={() => {}}
+          onRemove={onRemove}
+        />
+      </li>
+    );
+  }
+
   return (
     <li className="player">
       <NameField

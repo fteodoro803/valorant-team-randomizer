@@ -189,7 +189,8 @@ h1 {
 }
 
 /* The page has two sections side by side on wide screens. */
-.columns + .panel {
+.columns + .panel,
+.panel + .panel {
   margin-top: 16px;
 }
 
@@ -1164,6 +1165,104 @@ input:not([type]) {
 
   .suggestion {
     min-height: 40px;
+  }
+}
+
+/* Party: the code to read out, the join form, and party members in the team list */
+
+.party-code {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 3rem;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  color: var(--accent-text);
+  user-select: all;
+}
+
+.party-sub {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.party-join {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.party-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.party-fields input:first-child {
+  text-transform: uppercase;
+}
+
+.party-message {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: rgba(255, 70, 85, 0.12);
+  font-size: 0.9rem;
+}
+
+.member-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 14px;
+  line-height: 44px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.member-tag {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.player.member[data-online="true"] .member-tag {
+  color: #3ec9b0;
+}
+
+.team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.team-list li[data-online="false"] {
+  color: var(--muted);
+}
+
+@media (min-width: 721px) {
+  .party-fields {
+    grid-template-columns: 7rem minmax(0, 1fr);
   }
 }
 

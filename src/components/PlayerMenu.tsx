@@ -11,6 +11,8 @@ interface Props {
   banCount: number;
   /** False when they are the last player, who cannot be taken off the team. */
   canRemove: boolean;
+  /** True for someone in the party, whose bans and name live on their own device, so only Remove is offered. */
+  managed?: boolean;
   onBans: () => void;
   /** Take them off the team. With `forget`, also delete their saved bans and history (D9). */
   onRemove: (forget: boolean) => void;
@@ -24,7 +26,7 @@ interface Props {
  * the arrow keys and tapping outside close or move through it, and focus goes to the first
  * item on open and back to the button on close, which a plain list of buttons would not do.
  */
-export function PlayerMenu({ label, named, banCount, canRemove, onBans, onRemove }: Props) {
+export function PlayerMenu({ label, named, banCount, canRemove, managed = false, onBans, onRemove }: Props) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -96,14 +98,16 @@ export function PlayerMenu({ label, named, banCount, canRemove, onBans, onRemove
               <span className="muted">Player options</span>
             </div>
 
-            <button type="button" role="menuitem" className="menu-item" onClick={chooseBans}>
-              <BanIcon size={22} />
-              <span className="menu-text">
-                <span className="menu-label">Bans</span>
-                <span className="menu-hint sheet-only">Agents and roles they never want</span>
-              </span>
-              {banCount > 0 && <span className="menu-count">{banCount}</span>}
-            </button>
+            {!managed && (
+              <button type="button" role="menuitem" className="menu-item" onClick={chooseBans}>
+                <BanIcon size={22} />
+                <span className="menu-text">
+                  <span className="menu-label">Bans</span>
+                  <span className="menu-hint sheet-only">Agents and roles they never want</span>
+                </span>
+                {banCount > 0 && <span className="menu-count">{banCount}</span>}
+              </button>
+            )}
 
             <button type="button" role="menuitem" className="menu-item" disabled={!canRemove} onClick={choose(false)}>
               <UserMinusIcon size={22} />
@@ -113,7 +117,7 @@ export function PlayerMenu({ label, named, banCount, canRemove, onBans, onRemove
               </span>
             </button>
 
-            {named && (
+            {named && !managed && (
               <button type="button" role="menuitem" className="menu-item danger" disabled={!canRemove} onClick={choose(true)}>
                 <TrashIcon size={22} />
                 <span className="menu-text">

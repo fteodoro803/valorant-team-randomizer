@@ -13,6 +13,11 @@ export interface Player {
   excludedAgents: string[];
   /** Roles this player never wants to be given, whatever the agent. */
   bannedRoles: Role[];
+  /**
+   * Set only while this player is someone who joined the host's party from their own device.
+   * Their name and bans come from that device, and "offline" means they have left the tab.
+   */
+  member?: "online" | "offline";
 }
 
 export interface Settings {
