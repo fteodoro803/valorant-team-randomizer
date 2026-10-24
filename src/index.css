@@ -194,6 +194,11 @@ h1 {
   margin-top: 16px;
 }
 
+/* Inside the grid the two panels sit side by side, so Rules must not get the stacking gap or it starts lower than Team. */
+.columns > .panel + .panel {
+  margin-top: 0;
+}
+
 /* Buttons and inputs */
 
 button {
