@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MemberStatus } from "../hooks/useParty";
+import type { JoinStep, MemberStatus } from "../hooks/useParty";
 import type { SharedRoll, TeamMember } from "../lib/party";
 import type { Player } from "../lib/types";
 import { BansDialog } from "./BansDialog";
@@ -9,6 +9,8 @@ interface Props {
   /** The member as they are on their own device. Their bans are saved here and sent to the host. */
   me: Player;
   status: MemberStatus;
+  /** Where a join is up to, shown while the member waits to be let in. */
+  step: JoinStep;
   /** What the host last sent: who is on the team, the latest roll, and why a roll failed. */
   shared: { team: TeamMember[]; rolled: SharedRoll | null; error: string | null } | null;
   onChange: (patch: Partial<Player>) => void;
@@ -22,7 +24,7 @@ interface Props {
  * The member never holds the team or rolls anything. They send their bans and Roll
  * presses to the host, and show whatever the host sends back, so every phone matches.
  */
-export function MemberView({ me, status, shared, onChange, onRoll, onLeave }: Props) {
+export function MemberView({ me, status, step, shared, onChange, onRoll, onLeave }: Props) {
   const [bansOpen, setBansOpen] = useState(false);
   const joined = status === "joined" && shared !== null;
   const banCount = me.excludedAgents.length + me.bannedRoles.length;
@@ -58,7 +60,11 @@ export function MemberView({ me, status, shared, onChange, onRoll, onLeave }: Pr
         {shared?.rolled ? (
           <CompResult comp={shared.rolled.comp} players={players} rollId={shared.rolled.id} />
         ) : (
-          <p className="empty">{joined ? "Press Roll to give everyone an agent for the next game." : "Joining the party…"}</p>
+          <p className="empty">{joined
+              ? "Press Roll to give everyone an agent for the next game."
+              : step === "asking"
+                ? "Asking the host to let you in…"
+                : "Connecting to the party…"}</p>
         )}
       </div>
 
@@ -78,7 +84,7 @@ export function MemberView({ me, status, shared, onChange, onRoll, onLeave }: Pr
         <div className="panel-head">
           <h2 className="section-label">Team</h2>
           <button type="button" className="ghost" onClick={onLeave}>
-            Leave party
+            {joined ? "Leave party" : "Cancel"}
           </button>
         </div>
         <ul className="team-list">

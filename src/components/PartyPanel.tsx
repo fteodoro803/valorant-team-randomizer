@@ -51,6 +51,10 @@ export function PartyPanel({ host, onStart, onStop, joinError, notice, onJoin }:
             Friends open this page, type the code under Join a party, and set their own bans on their phones.
             Anyone you connect with can see your network address, because browsers talk to each other directly.
           </p>
+          <p className="panel-hint">
+            Host from a computer if you can. If this page closes or its device sleeps, the party ends for everyone.
+            On a phone, keep this page in front with the screen on.
+          </p>
           <button type="button" className="ghost" onClick={onStop}>
             Stop party
           </button>
@@ -58,7 +62,10 @@ export function PartyPanel({ host, onStart, onStop, joinError, notice, onJoin }:
       ) : (
         <>
           {/* Not hosting: start one, or join one */}
-          <p className="panel-hint">Host a party so friends set their own bans from their own phones.</p>
+          <p className="panel-hint">
+            Host a party so friends set their own bans from their own phones. It works best when the host is on a
+            computer, because the party ends if the host's page closes or its device sleeps.
+          </p>
           <button type="button" className="ghost" disabled={host.status === "connecting"} onClick={onStart}>
             {host.status === "connecting" ? "Starting…" : "Start a party"}
           </button>
