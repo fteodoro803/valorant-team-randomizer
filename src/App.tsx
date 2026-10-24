@@ -7,6 +7,7 @@ import { PlayerList } from "./components/PlayerList";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useHostParty, useMemberParty } from "./hooks/useParty";
+import { useWakeLock } from "./hooks/useWakeLock";
 import { createLocalHistoryStore, recordRoll } from "./lib/history";
 import { fitMinimums, totalMinimums } from "./lib/minimums";
 import { parsePlayers, parseRoster, parseSettings } from "./lib/parse";
@@ -14,11 +15,14 @@ import {
   admitMember,
   cleanName,
   endParty,
+  NO_PARTY_MESSAGE,
+  normaliseCode,
   setMemberBans,
   setMemberStatus,
   teamForMembers,
 } from "./lib/party";
-import type { SharedRoll, TeamMember, ToHost } from "./lib/party";
+import type { MemberMessage, SharedRoll, TeamMember } from "./lib/party";
+import { clearSession, loadSession, saveSession } from "./lib/partySession";
 import { RollError, rollComp } from "./lib/roll";
 import {
   findDuplicateName,
@@ -26,12 +30,18 @@ import {
   forgetPlayer,
   isNamedKey,
   keepNamedHistory,
+  keyForName,
+  playerKey,
   rememberPlayers,
   removeFromTeam,
   toRollPlayers,
 } from "./lib/roster";
 import { browserStorage } from "./lib/storage";
 import type { Assignment, Player, Roster, Settings } from "./lib/types";
+
+/** How many times a device that lost its party tries to get back in, and how long it waits between tries. */
+const MAX_REJOIN_TRIES = 3;
+const REJOIN_DELAY_MS = 4000;
 
 const storage = browserStorage();
 const historyStore = createLocalHistoryStore(storage);
@@ -71,6 +81,9 @@ export default function App() {
   // Party state. A member's page shows what the host last sent (`shared`) and their own details (`me`).
   const [partyNotice, setPartyNotice] = useState<string | null>(null);
   const [me, setMe] = useState<Player | null>(null);
+  // How many times this device has tried to get back into its party, and whether it wants to try now.
+  const [rejoinTries, setRejoinTries] = useState(0);
+  const [wantRejoin, setWantRejoin] = useState(false);
   const [shared, setShared] = useState<{ team: TeamMember[]; rolled: SharedRoll | null; error: string | null } | null>(
     null,
   );
@@ -101,12 +114,23 @@ export default function App() {
   // The member's end of a party.
   const member = useMemberParty({
     onMessage: (snapshot) => setShared({ team: snapshot.team, rolled: snapshot.rolled, error: snapshot.error }),
-    onEnded: (reason) => {
+    // The host took this member off the team, so the device must not rejoin by itself.
+    onRemoved: () => {
+      clearSession(storage);
+      setRejoinTries(0);
+      setWantRejoin(false);
       setShared(null);
       setMe(null);
-      setPartyNotice(reason);
+      setPartyNotice("The host removed you from the party.");
+    },
+    // The connection went quiet or the host left. The device tries to get back in (see below).
+    onEnded: () => {
+      setShared(null);
+      setPartyNotice("Connection lost. Reconnecting to the party…");
+      setWantRejoin(true);
     },
   });
+  useWakeLock(host.status === "open");
   const memberActive = member.status === "connecting" || member.status === "joined";
 
   // The Roll button is pinned to the bottom on phones, so a roll can happen while the comp is
@@ -183,9 +207,14 @@ export default function App() {
   // 1. A new device must send a join first. It is refused if the name is taken or the team is full.
   // 2. Later, its bans replace the member's bans and are saved to the roster (so they survive the
   //    member leaving), and its Roll presses roll for everyone.
-  function handleMemberMessage(peerId: string, message: ToHost) {
+  function handleMemberMessage(peerId: string, message: MemberMessage) {
     if (message.type === "join") {
-      const result = admitMember(live.current.players, message, crypto.randomUUID());
+      // A member who has gone quiet is probably this same person coming back from sleep, so their name
+      // is freed up. Someone who is still answering keeps it, and a second person using it is refused.
+      let team = live.current.players;
+      const sameName = team.find((p) => p.member === "online" && playerKey(p) === keyForName(message.name));
+      if (sameName && host.isQuiet(sameName.id)) team = setMemberStatus(team, sameName.id, "offline");
+      const result = admitMember(team, message, crypto.randomUUID());
       if ("refused" in result) {
         host.send(peerId, { type: "refused", reason: result.refused });
         host.drop(peerId);
@@ -226,10 +255,10 @@ export default function App() {
     commitPlayers(endParty(players));
   };
 
-  const joinParty = (code: string, typedName: string) => {
+  // Starts a join. A typed code and a rejoin after sleep go through here the same way.
+  const startJoin = (code: string, typedName: string) => {
     const name = cleanName(typedName);
-    const saved = findSaved(roster, name);
-    setPartyNotice(null);
+    const saved = findSaved(live.current.roster, name);
     setShared(null);
     setMe({
       id: "me",
@@ -245,6 +274,58 @@ export default function App() {
     });
   };
 
+  const joinParty = (code: string, typedName: string) => {
+    setPartyNotice(null);
+    setRejoinTries(0);
+    saveSession(storage, normaliseCode(code), cleanName(typedName));
+    startJoin(code, typedName);
+  };
+
+  // A device that was in a party and lost it (it slept, the signal dropped, the page was refreshed)
+  // goes back in by itself with the code and name it remembered. It waits until the tab is in front,
+  // tries a few times, and stops if the code no longer belongs to a party.
+  useEffect(() => {
+    if (loadSession(storage)) setWantRejoin(true);
+  }, []);
+
+  useEffect(() => {
+    if (!wantRejoin) return;
+    const attempt = () => {
+      if (document.visibilityState !== "visible") return;
+      setWantRejoin(false);
+      const session = loadSession(storage);
+      if (!session) return;
+      setRejoinTries((n) => n + 1);
+      setPartyNotice("Reconnecting to the party…");
+      startJoin(session.code, session.name);
+    };
+    attempt();
+    document.addEventListener("visibilitychange", attempt);
+    return () => document.removeEventListener("visibilitychange", attempt);
+    // `startJoin` is remade every render and only the newest one is wanted, so it is not listed.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantRejoin]);
+
+  useEffect(() => {
+    if (member.status === "joined") {
+      setRejoinTries(0);
+      setPartyNotice(null);
+      return;
+    }
+    if (member.status !== "error" || !loadSession(storage)) return;
+    // A join that was typed in and failed is not retried. A rejoin is, until the party is gone or the tries run out.
+    if (rejoinTries === 0 || member.error === NO_PARTY_MESSAGE || rejoinTries >= MAX_REJOIN_TRIES) {
+      clearSession(storage);
+      setRejoinTries(0);
+      setPartyNotice(null);
+      return;
+    }
+    const timer = setTimeout(() => setWantRejoin(true), REJOIN_DELAY_MS);
+    return () => clearTimeout(timer);
+    // Runs when the connection's state changes, not when the try counter does, or each try would start another.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [member.status]);
+
   const changeMyBans = (patch: Partial<Player>) => {
     if (!me) return;
     const next = { ...me, ...patch };
@@ -254,6 +335,10 @@ export default function App() {
   };
 
   const leaveParty = () => {
+    clearSession(storage);
+    setRejoinTries(0);
+    setWantRejoin(false);
+    setPartyNotice(null);
     member.leave();
     setShared(null);
     setMe(null);
@@ -264,6 +349,7 @@ export default function App() {
       <MemberView
         me={me}
         status={member.status}
+        step={member.step}
         shared={shared}
         onChange={changeMyBans}
         onRoll={() => member.send({ type: "roll" })}
@@ -312,7 +398,7 @@ export default function App() {
         host={host}
         onStart={host.start}
         onStop={stopParty}
-        joinError={member.error}
+        joinError={rejoinTries > 0 ? null : member.error}
         notice={partyNotice}
         onJoin={joinParty}
       />

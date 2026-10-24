@@ -42,7 +42,14 @@ export interface MemberBans {
 export type ToHost =
   | ({ type: "join"; name: string } & MemberBans)
   | ({ type: "bans" } & MemberBans)
-  | { type: "roll" };
+  | { type: "roll" }
+  | { type: "ping" };
+
+/** The messages that are for the host to act on. A ping is answered by the connection itself. */
+export type MemberMessage = Exclude<ToHost, { type: "ping" }>;
+
+/** Shown when no party is listening on the code, so the app can tell that failure from a bad connection. */
+export const NO_PARTY_MESSAGE = "No party with that code. Check it with the host.";
 
 /** One person on the team, as members see them. */
 export interface TeamMember {
@@ -59,6 +66,8 @@ export interface SharedRoll {
 
 /** What the host sends to members. The first snapshot a member gets also means they are in. */
 export type ToMember =
+  | { type: "pong" }
+  | { type: "removed" }
   | { type: "refused"; reason: string }
   | { type: "snapshot"; team: TeamMember[]; rolled: SharedRoll | null; error: string | null };
 
@@ -91,6 +100,7 @@ function cleanBans(value: Record<string, unknown>): MemberBans | null {
 export function parseToHost(raw: unknown): ToHost | null {
   if (!isRecord(raw)) return null;
   if (raw.type === "roll") return { type: "roll" };
+  if (raw.type === "ping") return { type: "ping" };
   const bans = cleanBans(raw);
   if (bans === null) return null;
   if (raw.type === "bans") return { type: "bans", ...bans };
@@ -130,6 +140,8 @@ function parseSharedRoll(value: unknown): SharedRoll | null | undefined {
 /** Reads a message from the host, or null if it isn't one we understand. */
 export function parseToMember(raw: unknown): ToMember | null {
   if (!isRecord(raw)) return null;
+  if (raw.type === "pong") return { type: "pong" };
+  if (raw.type === "removed") return { type: "removed" };
   if (raw.type === "refused" && typeof raw.reason === "string") {
     return { type: "refused", reason: raw.reason.slice(0, 200) };
   }
@@ -171,7 +183,7 @@ export function admitMember(
   };
   const existing = players.find((p) => playerKey(p) === keyForName(join.name));
   if (existing) {
-    if (existing.member !== "offline") return { refused: `${join.name} is already on the team.` };
+    if (existing.member !== "offline") return { refused: `${join.name} is already in this party. Pick another name, or wait a moment if that was you.` };
     return {
       players: players.map((p) => (p === existing ? { ...person, id: existing.id } : p)),
       playerId: existing.id,

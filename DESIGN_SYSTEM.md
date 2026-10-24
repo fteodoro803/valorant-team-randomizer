@@ -52,9 +52,9 @@ Text colours were lightened where the fill failed 4.5:1 contrast on its tint.
 | Ban tile | `BansDialog.tsx` | A real checkbox inside a label. Banned: greyed with a red slash. Hidden by a banned role: greyed only, with no slash, since role bans stay a separate list (D11) |
 | Switch | `SettingsPanel.tsx` | A checkbox drawn as a track and knob |
 | History | `HistoryView.tsx` | A strip of agent icons per player, newest on the right and outlined |
-| Party panel | `PartyPanel.tsx` | A panel under Team and Rules. While hosting it shows the code in large letterspaced Barlow Condensed with a one-line note that connected people can see each other's network address, and a Stop button. Otherwise it offers Start a party and a Join form (code and name). Messages use the same red-tinted box as roll errors (D20) |
+| Party panel | `PartyPanel.tsx` | A panel under Team and Rules. While hosting it shows the code in large letterspaced Barlow Condensed with a one-line note that connected people can see each other's network address, and a Stop button. Otherwise it offers Start a party and a Join form (code and name). Messages use the same red-tinted box as roll errors (D20). Both states carry a line advising a computer as host, since a host that closes or sleeps ends the party (D21) |
 | Party member row | `PlayerRow.tsx` | A joined member's name is plain text in the name box's frame, with "In party" in teal or "Offline" in grey, and a menu with only Remove from team, since their name and bans come from their own device |
-| Member page | `MemberView.tsx` | What a joined friend sees: the shared comp, a panel with their name and a Bans button (the same dialog as the host's), the team list and Leave party. Roll is pinned to the bottom on phones like the host's |
+| Member page | `MemberView.tsx` | What a joined friend sees: the shared comp, a panel with their name and a Bans button (the same dialog as the host's), the team list and Leave party. Roll is pinned to the bottom on phones like the host's. While joining, the page says "Connecting to the party…" and then "Asking the host to let you in…", and the Leave button reads Cancel (D21) |
 
 ## Where the build differs from the canvas
 

@@ -67,8 +67,9 @@ describe("parseToHost", () => {
     expect(parsed).toEqual({ type: "bans", excludedAgents: ["Sage"], bannedRoles: ["duelist"] });
   });
 
-  it("reads a roll press", () => {
+  it("reads a roll press and a ping", () => {
     expect(parseToHost({ type: "roll" })).toEqual({ type: "roll" });
+    expect(parseToHost({ type: "ping" })).toEqual({ type: "ping" });
   });
 
   it("rejects anything else", () => {
@@ -99,6 +100,11 @@ describe("parseToMember", () => {
 
   it("reads a snapshot before any roll, and one with an error", () => {
     expect(parseToMember({ ...snapshot, rolled: null, error: "No valid comp" })).toMatchObject({ rolled: null, error: "No valid comp" });
+  });
+
+  it("reads a pong and a removal", () => {
+    expect(parseToMember({ type: "pong" })).toEqual({ type: "pong" });
+    expect(parseToMember({ type: "removed" })).toEqual({ type: "removed" });
   });
 
   it("reads a refusal", () => {
@@ -139,7 +145,9 @@ describe("admitMember", () => {
   });
 
   it("refuses a name that is already on the team, however it is capitalised", () => {
-    expect(admitMember([player("a", "sam")], { ...join, name: "SAM" }, "new")).toEqual({ refused: "SAM is already on the team." });
+    expect(admitMember([player("a", "sam")], { ...join, name: "SAM" }, "new")).toEqual({
+      refused: "SAM is already in this party. Pick another name, or wait a moment if that was you.",
+    });
     expect(admitMember([player("a", "Sam", { member: "online" })], join, "new")).toMatchObject({ refused: expect.any(String) });
   });
 
