@@ -11,6 +11,8 @@ interface Props {
   /** Why the last party ended, if it ended on its own. */
   notice: string | null;
   onJoin: (code: string, name: string) => void;
+  /** The last party this device joined, within three hours, so the form can start filled in. */
+  last: { code: string; name: string } | null;
 }
 
 /**
@@ -20,9 +22,9 @@ interface Props {
  * Otherwise it offers the two ways in. The code is checked here before anyone is called,
  * so a typo gets a plain message instead of a wait.
  */
-export function PartyPanel({ host, onStart, onStop, joinError, notice, onJoin }: Props) {
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
+export function PartyPanel({ host, onStart, onStop, joinError, notice, onJoin, last }: Props) {
+  const [code, setCode] = useState(last?.code ?? "");
+  const [name, setName] = useState(last?.name ?? "");
   const [problem, setProblem] = useState<string | null>(null);
 
   const submit = (e: React.FormEvent) => {

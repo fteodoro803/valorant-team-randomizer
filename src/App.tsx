@@ -17,12 +17,20 @@ import {
   endParty,
   NO_PARTY_MESSAGE,
   normaliseCode,
+  PARTY_ENDED_MESSAGE,
   setMemberBans,
   setMemberStatus,
   teamForMembers,
 } from "./lib/party";
 import type { MemberMessage, SharedRoll, TeamMember } from "./lib/party";
-import { clearSession, loadSession, saveSession } from "./lib/partySession";
+import {
+  clearLastParty,
+  clearSession,
+  loadLastParty,
+  loadSession,
+  saveLastParty,
+  saveSession,
+} from "./lib/partySession";
 import { RollError, rollComp } from "./lib/roll";
 import {
   findDuplicateName,
@@ -84,6 +92,8 @@ export default function App() {
   // How many times this device has tried to get back into its party, and whether it wants to try now.
   const [rejoinTries, setRejoinTries] = useState(0);
   const [wantRejoin, setWantRejoin] = useState(false);
+  // The last party joined, kept after leaving so the join form can start filled in.
+  const [lastParty, setLastParty] = useState(() => loadLastParty(storage));
   const [shared, setShared] = useState<{ team: TeamMember[]; rolled: SharedRoll | null; error: string | null } | null>(
     null,
   );
@@ -181,6 +191,8 @@ export default function App() {
 
   // Remove keeps the person's saved details and history, forgetting deletes them (D9).
   const removePlayer = (player: Player, forgetThem: boolean) => {
+    // Read from `live`, since a friend leaving the party arrives here from a message, not a render.
+    const { players, roster, history, settings } = live.current;
     // A party member who is removed is also disconnected, so they can't keep sending bans.
     if (player.member) host.kick(player.id);
     const next = removeFromTeam(players, roster, history, player, forgetThem);
@@ -227,6 +239,12 @@ export default function App() {
     }
     const playerId = host.playerOf(peerId);
     if (playerId === null) return;
+    if (message.type === "leave") {
+      // They left on purpose, so unlike a dropped connection they come off the team (their bans stay saved).
+      const leaver = live.current.players.find((p) => p.id === playerId);
+      if (leaver) removePlayer(leaver, false);
+      return;
+    }
     if (message.type === "roll") {
       roll();
       return;
@@ -278,6 +296,8 @@ export default function App() {
     setPartyNotice(null);
     setRejoinTries(0);
     saveSession(storage, normaliseCode(code), cleanName(typedName));
+    saveLastParty(storage, normaliseCode(code), cleanName(typedName));
+    setLastParty(loadLastParty(storage));
     startJoin(code, typedName);
   };
 
@@ -308,6 +328,10 @@ export default function App() {
 
   useEffect(() => {
     if (member.status === "joined") {
+      // Being in the party starts the three hours again.
+      const session = loadSession(storage);
+      if (session) saveLastParty(storage, session.code, session.name);
+      setLastParty(loadLastParty(storage));
       setRejoinTries(0);
       setPartyNotice(null);
       return;
@@ -315,9 +339,15 @@ export default function App() {
     if (member.status !== "error" || !loadSession(storage)) return;
     // A join that was typed in and failed is not retried. A rejoin is, until the party is gone or the tries run out.
     if (rejoinTries === 0 || member.error === NO_PARTY_MESSAGE || rejoinTries >= MAX_REJOIN_TRIES) {
+      // A code with no party behind it is no use to offer again, whether it was mistyped or the party ended.
+      const gone = member.error === NO_PARTY_MESSAGE;
+      if (gone || rejoinTries === 0) {
+        clearLastParty(storage);
+        setLastParty(null);
+      }
       clearSession(storage);
+      setPartyNotice(gone && rejoinTries > 0 ? PARTY_ENDED_MESSAGE : null);
       setRejoinTries(0);
-      setPartyNotice(null);
       return;
     }
     const timer = setTimeout(() => setWantRejoin(true), REJOIN_DELAY_MS);
@@ -394,11 +424,14 @@ export default function App() {
         <PlayerList players={players} roster={roster} onChange={commitPlayers} onRemove={removePlayer} onForget={forget} />
         <SettingsPanel settings={settings} playerCount={players.length} onChange={setSettings} />
       </div>
+      {/* Keyed on the remembered code, so the join form refills or empties when the remembered party changes. */}
       <PartyPanel
+        key={lastParty?.code ?? "none"}
         host={host}
         onStart={host.start}
         onStop={stopParty}
-        joinError={rejoinTries > 0 ? null : member.error}
+        joinError={partyNotice || rejoinTries > 0 ? null : member.error}
+        last={lastParty}
         notice={partyNotice}
         onJoin={joinParty}
       />

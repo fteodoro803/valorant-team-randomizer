@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearSession, loadSession, saveSession } from "./partySession";
+import { clearLastParty, clearSession, loadLastParty, loadSession, saveLastParty, saveSession } from "./partySession";
 import type { KeyValueStorage } from "./storage";
 
 const memory = (): KeyValueStorage => {
@@ -27,6 +27,26 @@ describe("party session", () => {
     saveSession(storage, "K7QD", "Sam");
     clearSession(storage);
     expect(loadSession(storage)).toBeNull();
+  });
+
+  it("keeps the last party separate, so leaving doesn't forget it", () => {
+    const storage = memory();
+    saveSession(storage, "K7QD", "Sam", 0);
+    saveLastParty(storage, "K7QD", "Sam", 0);
+    clearSession(storage);
+    expect(loadSession(storage, 1)).toBeNull();
+    expect(loadLastParty(storage, 1)).toEqual({ code: "K7QD", name: "Sam", at: 0 });
+  });
+
+  it("forgets the last party three hours after it was last used, or when it is cleared", () => {
+    const storage = memory();
+    saveLastParty(storage, "K7QD", "Sam", 0);
+    expect(loadLastParty(storage, 3 * 60 * 60 * 1000)).not.toBeNull();
+    expect(loadLastParty(storage, 3 * 60 * 60 * 1000 + 1)).toBeNull();
+    saveLastParty(storage, "K7QD", "Sam", 5000);
+    expect(loadLastParty(storage, 5001)).not.toBeNull();
+    clearLastParty(storage);
+    expect(loadLastParty(storage, 5001)).toBeNull();
   });
 
   it("treats damaged data as nothing", () => {

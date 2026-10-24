@@ -67,8 +67,9 @@ describe("parseToHost", () => {
     expect(parsed).toEqual({ type: "bans", excludedAgents: ["Sage"], bannedRoles: ["duelist"] });
   });
 
-  it("reads a roll press and a ping", () => {
+  it("reads a roll press, a leave and a ping", () => {
     expect(parseToHost({ type: "roll" })).toEqual({ type: "roll" });
+    expect(parseToHost({ type: "leave" })).toEqual({ type: "leave" });
     expect(parseToHost({ type: "ping" })).toEqual({ type: "ping" });
   });
 
