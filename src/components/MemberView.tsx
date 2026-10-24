@@ -4,6 +4,7 @@ import type { SharedRoll, TeamMember } from "../lib/party";
 import type { Player } from "../lib/types";
 import { BansDialog } from "./BansDialog";
 import { CompResult } from "./CompResult";
+import { Disclaimer } from "./Disclaimer";
 
 interface Props {
   /** The member as they are on their own device. Their bans are saved here and sent to the host. */
@@ -90,12 +91,19 @@ export function MemberView({ me, status, step, shared, onChange, onRoll, onLeave
         <ul className="team-list">
           {(shared?.team ?? []).map((member) => (
             <li key={member.name} data-online={member.online}>
-              {member.name}
-              {!member.online && <span className="member-tag">Offline</span>}
+              <span>{member.name}</span>
+              <span
+                className="status-dot"
+                data-online={member.online}
+                role="img"
+                aria-label={`${member.name} is ${member.online ? "in the party" : "offline"}`}
+              />
             </li>
           ))}
         </ul>
       </section>
+
+      <Disclaimer />
 
       {bansOpen && <BansDialog player={me} label={me.name} onChange={onChange} onClose={() => setBansOpen(false)} />}
     </main>
