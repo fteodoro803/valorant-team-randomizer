@@ -349,8 +349,21 @@ export function useMemberParty(options: MemberOptions) {
     });
   };
 
+  /**
+   * Leaves on purpose, and tells the host so it takes them off the team.
+   *
+   * The handlers are switched off at once, so nothing the host sends back counts. The connection
+   * itself is kept for a moment so the message gets out before it is closed.
+   */
   const leave = () => {
-    teardown();
+    clearTimeout(timerRef.current);
+    clearInterval(beatRef.current);
+    const peer = peerRef.current;
+    const conn = connRef.current;
+    peerRef.current = null;
+    connRef.current = null;
+    if (conn?.open) conn.send({ type: "leave" } satisfies ToHost);
+    setTimeout(() => peer?.destroy(), 500);
     setStatus("idle");
     setError(null);
   };

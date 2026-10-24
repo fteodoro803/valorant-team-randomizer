@@ -43,10 +43,14 @@ export type ToHost =
   | ({ type: "join"; name: string } & MemberBans)
   | ({ type: "bans" } & MemberBans)
   | { type: "roll" }
+  | { type: "leave" }
   | { type: "ping" };
 
 /** The messages that are for the host to act on. A ping is answered by the connection itself. */
 export type MemberMessage = Exclude<ToHost, { type: "ping" }>;
+
+/** Shown to a friend whose party has gone while they were in it. */
+export const PARTY_ENDED_MESSAGE = "The party has ended.";
 
 /** Shown when no party is listening on the code, so the app can tell that failure from a bad connection. */
 export const NO_PARTY_MESSAGE = "No party with that code. Check it with the host.";
@@ -101,6 +105,7 @@ export function parseToHost(raw: unknown): ToHost | null {
   if (!isRecord(raw)) return null;
   if (raw.type === "roll") return { type: "roll" };
   if (raw.type === "ping") return { type: "ping" };
+  if (raw.type === "leave") return { type: "leave" };
   const bans = cleanBans(raw);
   if (bans === null) return null;
   if (raw.type === "bans") return { type: "bans", ...bans };
