@@ -36,7 +36,7 @@ import type { Assignment, Player, Roster, Settings } from "./lib/types";
 const storage = browserStorage();
 const historyStore = createLocalHistoryStore(storage);
 
-const defaultPlayers: Player[] = [1, 2, 3, 4, 5].map((n) => ({
+const defaultPlayers: Player[] = [1].map((n) => ({
   id: `player-${n}`,
   name: "",
   excludedAgents: [],
