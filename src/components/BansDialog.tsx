@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
-import { AGENTS, agentIconUrl } from "../data/agents";
-import type { Player, Role } from "../lib/types";
-import { ROLES } from "../lib/types";
-import { BanIcon } from "./icons";
+import type { Player } from "../lib/types";
+import { BanPicker } from "./BanPicker";
 
 interface Props {
   player: Player;
@@ -13,13 +11,11 @@ interface Props {
 }
 
 /**
- * One player's bans: roles at the top, then every agent as a tile to tap.
+ * One player's bans in a modal dialog, with the shared BanPicker as its body (D23 follow-up).
  *
  * Built on the browser's own modal <dialog>, so Escape, the page behind going
  * inert and focus returning to the opener all come for free. It is full screen
- * on phones and a centred card on wide screens, which CSS decides. Role bans
- * and agent bans stay separate lists (D11): an agent hidden by a banned role
- * is greyed out but is not added to the agent bans.
+ * on phones and a centred card on wide screens, which CSS decides.
  */
 export function BansDialog({ player, label, onChange, onClose }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -29,20 +25,6 @@ export function BansDialog({ player, label, onChange, onClose }: Props) {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
-
-  const toggleAgent = (agent: string) =>
-    onChange({
-      excludedAgents: player.excludedAgents.includes(agent)
-        ? player.excludedAgents.filter((name) => name !== agent)
-        : [...player.excludedAgents, agent],
-    });
-
-  const toggleRole = (role: Role) =>
-    onChange({
-      bannedRoles: player.bannedRoles.includes(role)
-        ? player.bannedRoles.filter((r) => r !== role)
-        : [...player.bannedRoles, role],
-    });
 
   return (
     <dialog
@@ -67,59 +49,7 @@ export function BansDialog({ player, label, onChange, onClose }: Props) {
           </button>
         </header>
 
-        {/* Banned roles */}
-        <section>
-          <h3 className="section-label">Roles they never want</h3>
-          <div className="role-chips">
-            {ROLES.map((role) => {
-              const on = player.bannedRoles.includes(role);
-              return (
-                <button
-                  key={role}
-                  type="button"
-                  className={`chip ${role}`}
-                  aria-pressed={on}
-                  onClick={() => toggleRole(role)}
-                >
-                  {on && <BanIcon size={14} />}
-                  {role}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Banned agents, grouped by role */}
-        {ROLES.map((role) => {
-          const viaRole = player.bannedRoles.includes(role);
-          return (
-            <fieldset key={role} className={`ban-group ${role}`}>
-              <legend>
-                {role}
-                {viaRole && " · banned as a role"}
-              </legend>
-              <div className="tiles">
-                {AGENTS.filter((a) => a.role === role).map((agent) => {
-                  const banned = player.excludedAgents.includes(agent.name);
-                  return (
-                    <label key={agent.name} className="tile" data-banned={banned} data-via-role={viaRole}>
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={banned}
-                        onChange={() => toggleAgent(agent.name)}
-                      />
-                      <span className="tile-art">
-                        <img src={agentIconUrl(agent.name)} alt="" />
-                      </span>
-                      <span className="tile-name">{agent.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-          );
-        })}
+        <BanPicker player={player} roleHeading="Roles they never want" onChange={onChange} />
       </div>
     </dialog>
   );

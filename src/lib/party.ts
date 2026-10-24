@@ -29,6 +29,26 @@ export const isPartyCode = (typed: string): boolean => {
   return code.length === CODE_LENGTH && [...code].every((char) => CODE_ALPHABET.includes(char));
 };
 
+/**
+ * What the four code boxes hold after something is typed or pasted into one of them.
+ *
+ * One character fills that box and moves on. A longer string (a pasted code, or a phone's autofill)
+ * fills from that box onward, so pasting K7QD into the first box fills all four. `focus` is the box
+ * to move to, which stays on the last box once the code is full.
+ */
+export function spreadCode(boxes: string[], index: number, typed: string): { boxes: string[]; focus: number } {
+  const chars = [...normaliseCode(typed)];
+  const next = [...boxes];
+  if (chars.length === 0) {
+    next[index] = "";
+    return { boxes: next, focus: index };
+  }
+  chars.slice(0, CODE_LENGTH - index).forEach((char, offset) => {
+    next[index + offset] = char;
+  });
+  return { boxes: next, focus: Math.min(index + chars.length, CODE_LENGTH - 1) };
+}
+
 /** The broker id a party with this code is listening on. */
 export const peerIdForCode = (code: string): string => `${PEER_PREFIX}${normaliseCode(code)}`;
 
