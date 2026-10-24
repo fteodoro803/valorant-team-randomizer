@@ -54,8 +54,16 @@ export function PlayerRow({ player, index, roster, players, canRemove, onUpdate,
   if (player.member) {
     return (
       <li className="player member" data-online={player.member === "online"}>
-        <span className="member-name">{player.name}</span>
-        <span className="member-tag">{player.member === "online" ? "In party" : "Offline"}</span>
+        <span className="member-name">
+          <span className="member-text">{player.name}</span>
+          <span
+            className="status-dot"
+            data-online={player.member === "online"}
+            role="img"
+            aria-label={`${player.name} is ${player.member === "online" ? "in the party" : "offline"}`}
+            title={player.member === "online" ? "In the party" : "Offline"}
+          />
+        </span>
         <PlayerMenu
           label={label}
           named

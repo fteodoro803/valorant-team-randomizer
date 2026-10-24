@@ -73,3 +73,11 @@ export const MinusIcon = (props: IconProps) => (
     <path d="M5 12h14" />
   </Icon>
 );
+
+/** A cross, for closing a message. */
+export const CloseIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 6l12 12" />
+    <path d="M18 6L6 18" />
+  </Icon>
+);

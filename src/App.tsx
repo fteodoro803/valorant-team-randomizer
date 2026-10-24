@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { CompResult } from "./components/CompResult";
 import { HistoryView } from "./components/HistoryView";
+import { Disclaimer } from "./components/Disclaimer";
+import { EntryPage } from "./components/EntryPage";
 import { MemberView } from "./components/MemberView";
-import { PartyPanel } from "./components/PartyPanel";
 import { PlayerList } from "./components/PlayerList";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { Toast } from "./components/Toast";
+import type { ToastMessage } from "./components/Toast";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useHostParty, useMemberParty } from "./hooks/useParty";
 import { useWakeLock } from "./hooks/useWakeLock";
@@ -26,10 +29,13 @@ import type { MemberMessage, SharedRoll, TeamMember } from "./lib/party";
 import {
   clearLastParty,
   clearSession,
+  hasOpenedCreate,
   loadLastParty,
   loadSession,
+  markOpenedCreate,
   saveLastParty,
   saveSession,
+  startsOnEntry,
 } from "./lib/partySession";
 import { RollError, rollComp } from "./lib/roll";
 import {
@@ -87,7 +93,20 @@ export default function App() {
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Party state. A member's page shows what the host last sent (`shared`) and their own details (`me`).
-  const [partyNotice, setPartyNotice] = useState<string | null>(null);
+  // The entry page opens first, unless this device is in a party or has opened Create before.
+  const [screen, setScreen] = useState<"entry" | "main">(() =>
+    startsOnEntry(loadSession(storage) !== null, hasOpenedCreate(storage)) ? "entry" : "main",
+  );
+  // What was typed into the join form, kept while the join is tried, so a mistyped code doesn't cost the name.
+  const [attempt, setAttempt] = useState<{ name: string; code: string } | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const toastCount = useRef(0);
+  // Errors wait to be closed so they can't vanish before they are read. Other messages fade by themselves.
+  const notify = (text: string, tone: "error" | "info" = "info", sticky: boolean = tone === "error") => {
+    toastCount.current += 1;
+    setToast({ id: toastCount.current, text, tone, sticky });
+  };
+  const closeToast = (id: number) => setToast((current) => (current?.id === id ? null : current));
   const [me, setMe] = useState<Player | null>(null);
   // How many times this device has tried to get back into its party, and whether it wants to try now.
   const [rejoinTries, setRejoinTries] = useState(0);
@@ -131,17 +150,26 @@ export default function App() {
       setWantRejoin(false);
       setShared(null);
       setMe(null);
-      setPartyNotice("The host removed you from the party.");
+      setScreen("entry");
+      notify("The host removed you from the party.");
     },
     // The connection went quiet or the host left. The device tries to get back in (see below).
     onEnded: () => {
       setShared(null);
-      setPartyNotice("Connection lost. Reconnecting to the party…");
+      setScreen("entry");
+      notify("Connection lost. Reconnecting to the party…", "info", true);
       setWantRejoin(true);
     },
   });
   useWakeLock(host.status === "open");
   const memberActive = member.status === "connecting" || member.status === "joined";
+
+  // Problems starting a party (the service that sets them up can't be reached) show as a toast.
+  useEffect(() => {
+    if (host.error) notify(host.error, "error");
+    // `notify` is remade every render, and only a new error should show a message.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [host.error]);
 
   // The Roll button is pinned to the bottom on phones, so a roll can happen while the comp is
   // scrolled out of view. Bring the result (or the error) back so the press is never silent,
@@ -195,7 +223,12 @@ export default function App() {
     const { players, roster, history, settings } = live.current;
     // A party member who is removed is also disconnected, so they can't keep sending bans.
     if (player.member) host.kick(player.id);
-    const next = removeFromTeam(players, roster, history, player, forgetThem);
+    const removed = removeFromTeam(players, roster, history, player, forgetThem);
+    // A friend leaving can empty the team, which always keeps one blank slot to type a name into.
+    const next =
+      removed.players.length === 0
+        ? { ...removed, players: [{ id: crypto.randomUUID(), name: "", excludedAgents: [], bannedRoles: [] }] }
+        : removed;
     commitPlayers(next.players);
     commitRoster(next.roster);
     // With fewer players the role minimums may no longer fit, so lower them to match.
@@ -293,7 +326,8 @@ export default function App() {
   };
 
   const joinParty = (code: string, typedName: string) => {
-    setPartyNotice(null);
+    setToast(null);
+    setAttempt({ name: typedName, code });
     setRejoinTries(0);
     saveSession(storage, normaliseCode(code), cleanName(typedName));
     saveLastParty(storage, normaliseCode(code), cleanName(typedName));
@@ -316,7 +350,7 @@ export default function App() {
       const session = loadSession(storage);
       if (!session) return;
       setRejoinTries((n) => n + 1);
-      setPartyNotice("Reconnecting to the party…");
+      notify("Reconnecting to the party…", "info", true);
       startJoin(session.code, session.name);
     };
     attempt();
@@ -333,25 +367,32 @@ export default function App() {
       if (session) saveLastParty(storage, session.code, session.name);
       setLastParty(loadLastParty(storage));
       setRejoinTries(0);
-      setPartyNotice(null);
+      setToast(null);
+      setAttempt(null);
       return;
     }
-    if (member.status !== "error" || !loadSession(storage)) return;
-    // A join that was typed in and failed is not retried. A rejoin is, until the party is gone or the tries run out.
-    if (rejoinTries === 0 || member.error === NO_PARTY_MESSAGE || rejoinTries >= MAX_REJOIN_TRIES) {
-      // A code with no party behind it is no use to offer again, whether it was mistyped or the party ended.
-      const gone = member.error === NO_PARTY_MESSAGE;
-      if (gone || rejoinTries === 0) {
-        clearLastParty(storage);
-        setLastParty(null);
-      }
-      clearSession(storage);
-      setPartyNotice(gone && rejoinTries > 0 ? PARTY_ENDED_MESSAGE : null);
-      setRejoinTries(0);
+    if (member.status !== "error") return;
+    const retrying = rejoinTries > 0;
+    const gone = member.error === NO_PARTY_MESSAGE;
+    if (!loadSession(storage)) {
+      if (member.error) notify(member.error, "error");
       return;
     }
-    const timer = setTimeout(() => setWantRejoin(true), REJOIN_DELAY_MS);
-    return () => clearTimeout(timer);
+    // A rejoin is tried again, until the party is gone or the tries run out.
+    if (retrying && !gone && rejoinTries < MAX_REJOIN_TRIES) {
+      const timer = setTimeout(() => setWantRejoin(true), REJOIN_DELAY_MS);
+      return () => clearTimeout(timer);
+    }
+    // Giving up: a typed join that failed, a party that is gone, or a rejoin that ran out of tries.
+    // A code with no party behind it is no use to offer again, whether it was mistyped or the party ended.
+    if (gone || !retrying) {
+      clearLastParty(storage);
+      setLastParty(null);
+    }
+    clearSession(storage);
+    setRejoinTries(0);
+    if (retrying && gone) notify(PARTY_ENDED_MESSAGE);
+    else if (member.error) notify(member.error, "error");
     // Runs when the connection's state changes, not when the try counter does, or each try would start another.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [member.status]);
@@ -368,23 +409,44 @@ export default function App() {
     clearSession(storage);
     setRejoinTries(0);
     setWantRejoin(false);
-    setPartyNotice(null);
+    setToast(null);
     member.leave();
     setShared(null);
     setMe(null);
+    setScreen("entry");
   };
 
+  // Create opens the main page, and remembers it so the entry page stops greeting this device.
+  const create = () => {
+    markOpenedCreate(storage);
+    setScreen("main");
+  };
+
+  // A friend's page. Its Roll bar is pinned to the bottom, so the toast sits above it.
   if (memberActive && me) {
     return (
-      <MemberView
-        me={me}
-        status={member.status}
-        step={member.step}
-        shared={shared}
-        onChange={changeMyBans}
-        onRoll={() => member.send({ type: "roll" })}
-        onLeave={leaveParty}
-      />
+      <>
+        <MemberView
+          me={me}
+          status={member.status}
+          step={member.step}
+          shared={shared}
+          onChange={changeMyBans}
+          onRoll={() => member.send({ type: "roll" })}
+          onLeave={leaveParty}
+        />
+        <Toast toast={toast} onClose={closeToast} />
+      </>
+    );
+  }
+
+  // The entry page has no Roll bar, so the toast can sit lower.
+  if (screen === "entry") {
+    return (
+      <>
+        <EntryPage last={lastParty} initial={attempt} onCreate={create} onJoin={joinParty} />
+        <Toast toast={toast} low onClose={closeToast} />
+      </>
     );
   }
 
@@ -393,10 +455,15 @@ export default function App() {
       {/* Header: title on the left, Roll on the right on wide screens and pinned to the bottom on phones */}
       <header className="app-head">
         <div>
-          {/* The portfolio's Lab page is one level up from where this is served (D14). */}
-          <a className="back-link" href="../">
-            ← Back to Projects
-          </a>
+          <div className="head-links">
+            {/* The portfolio's Lab page is one level up from where this is served (D14). */}
+            <a className="back-link" href="../">
+              ← Back to Projects
+            </a>
+            <button type="button" className="menu-link" onClick={() => setScreen("entry")}>
+              Menu
+            </button>
+          </div>
           <h1>Team randomiser</h1>
         </div>
         <div className="roll-bar">
@@ -421,36 +488,26 @@ export default function App() {
       </div>
 
       <div className="columns">
-        <PlayerList players={players} roster={roster} onChange={commitPlayers} onRemove={removePlayer} onForget={forget} />
+        <PlayerList
+          players={players}
+          roster={roster}
+          onChange={commitPlayers}
+          onRemove={removePlayer}
+          onForget={forget}
+          party={{
+            code: host.code,
+            status: host.status,
+            inParty: players.filter((p) => p.member === "online").length,
+            onStart: host.start,
+            onStop: stopParty,
+          }}
+        />
         <SettingsPanel settings={settings} playerCount={players.length} onChange={setSettings} />
       </div>
-      {/* Keyed on the remembered code, so the join form refills or empties when the remembered party changes. */}
-      <PartyPanel
-        key={lastParty?.code ?? "none"}
-        host={host}
-        onStart={host.start}
-        onStop={stopParty}
-        joinError={partyNotice || rejoinTries > 0 ? null : member.error}
-        last={lastParty}
-        notice={partyNotice}
-        onJoin={joinParty}
-      />
       <HistoryView players={toRollPlayers(players)} history={history} onClear={clearHistory} />
 
-      {/* Footer: two Riot notices, both worded as Riot gives them and neither to be reworded. */}
-      <footer className="disclaimer">
-        {/* Fan-content notice, fixed by Riot's "Legal Jibber Jabber" policy, section 6 (#5). */}
-        <p>
-          Valorant Team Randomizer was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot
-          Games. Riot Games does not endorse or sponsor this project.
-        </p>
-        {/* Product notice that Riot's general developer policy requires of every registered product. */}
-        <p>
-          Valorant Team Randomizer isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games
-          or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated
-          properties are trademarks or registered trademarks of Riot Games, Inc.
-        </p>
-      </footer>
+      <Disclaimer />
+      <Toast toast={toast} onClose={closeToast} />
     </main>
   );
 }

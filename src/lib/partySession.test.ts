@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { clearLastParty, clearSession, loadLastParty, loadSession, saveLastParty, saveSession } from "./partySession";
+import {
+  clearLastParty,
+  clearSession,
+  hasOpenedCreate,
+  loadLastParty,
+  loadSession,
+  markOpenedCreate,
+  saveLastParty,
+  saveSession,
+  startsOnEntry,
+} from "./partySession";
 import type { KeyValueStorage } from "./storage";
 
 const memory = (): KeyValueStorage => {
@@ -69,5 +79,34 @@ describe("party session", () => {
     expect(() => saveSession(broken, "K7QD", "Sam")).not.toThrow();
     expect(() => clearSession(broken)).not.toThrow();
     expect(loadSession(broken)).toBeNull();
+  });
+});
+
+describe("first screen", () => {
+  it("opens the entry page for a new device, and skips it for a party or earlier use of Create", () => {
+    expect(startsOnEntry(false, false)).toBe(true);
+    expect(startsOnEntry(true, false)).toBe(false);
+    expect(startsOnEntry(false, true)).toBe(false);
+    expect(startsOnEntry(true, true)).toBe(false);
+  });
+
+  it("remembers that Create was opened", () => {
+    const storage = memory();
+    expect(hasOpenedCreate(storage)).toBe(false);
+    markOpenedCreate(storage);
+    expect(hasOpenedCreate(storage)).toBe(true);
+  });
+
+  it("survives storage that throws", () => {
+    const broken: KeyValueStorage = {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => {
+        throw new Error("blocked");
+      },
+    };
+    expect(hasOpenedCreate(broken)).toBe(false);
+    expect(() => markOpenedCreate(broken)).not.toThrow();
   });
 });
