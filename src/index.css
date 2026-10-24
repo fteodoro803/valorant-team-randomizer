@@ -291,6 +291,26 @@ input:not([type]) {
   font-size: 0.9rem;
 }
 
+/*
+ * Sits in the note's line without making it taller, so locking a card doesn't shift the page down.
+ * The tap target is bigger than the text, through an invisible overlay instead of a tall button.
+ */
+.note-link {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.note-link::after {
+  content: "";
+  position: absolute;
+  inset: -14px -10px;
+}
+
 .lock-note[data-locked="true"] {
   color: var(--accent-text);
 }
@@ -373,6 +393,11 @@ input:not([type]) {
  * player under it, so the comp takes one short band instead of more than a screen (D23).
  * The role is left to the colour and the agent's name, and stays in the text for screen readers.
  */
+/* The list item only holds the card, so the cards are still the grid's (and the wide rows') items. */
+.card-item {
+  display: contents;
+}
+
 .card {
   display: flex;
   flex-direction: column;
@@ -380,6 +405,18 @@ input:not([type]) {
   gap: 2px;
   min-width: 0;
   text-align: center;
+}
+
+/*
+ * On the host's page a card is a button: drop the button look so it draws exactly like the plain card.
+ * `:where` keeps this at zero specificity, so the card's own rules (like the tint on wide screens) still win.
+ */
+:where(button.card) {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
 }
 
 .card-art {
@@ -422,6 +459,28 @@ input:not([type]) {
 .card[data-you="true"] .card-art {
   outline: 2px solid var(--text);
   outline-offset: 2px;
+}
+
+/* A player whose pick is locked through the next Roll (D27): a ring round the portrait and a padlock on its corner. */
+.card[data-kept="true"] .card-art {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+.card-lock {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 0 0 2px var(--bg);
 }
 
 /* The online dot sits on the portrait's top right corner, ringed in the page colour so it reads over any art. */
@@ -1156,6 +1215,31 @@ input:not([type]) {
   .card[data-you="true"] {
     outline: 2px solid var(--text);
     outline-offset: -2px;
+  }
+
+  /* From here the ring goes round the whole card, and the padlock sits inside the portrait's top right. */
+  .card[data-kept="true"] .card-art {
+    outline: 0;
+  }
+
+  /* An overlay rather than an outline, because the portrait is positioned and would paint over an outline's right edge. */
+  .card[data-kept="true"] {
+    position: relative;
+  }
+
+  .card[data-kept="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border: 3px solid var(--text);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .card-lock {
+    top: 8px;
+    right: 8px;
   }
 
   .card-art .status-dot {

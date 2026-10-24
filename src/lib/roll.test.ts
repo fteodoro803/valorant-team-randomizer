@@ -193,4 +193,72 @@ describe("rollComp", () => {
       expect(() => rollComp([], settings(), {}, seeded(1))).toThrow(RollError);
     });
   });
+
+  describe("rerolling with some players locked", () => {
+    const first = (seed: number, min: Partial<Record<Role, number>> = {}) =>
+      rollComp(team, settings(min), {}, seeded(seed));
+
+    it("keeps the locked picks exactly, and still returns the team in order", () => {
+      for (let seed = 0; seed < 100; seed++) {
+        const current = first(seed);
+        const comp = rollComp(team, settings(), {}, seeded(seed + 1000), AGENTS, {
+          current,
+          keptIds: ["a", "c"],
+        });
+        expect(comp.map((p) => p.playerId)).toEqual(["a", "b", "c", "d", "e"]);
+        expect(comp[0]).toEqual(current[0]);
+        expect(comp[2]).toEqual(current[2]);
+        expect(new Set(comp.map((p) => p.agent)).size).toBe(5);
+      }
+    });
+
+    it("gives each rerolled player a different agent from the one they had", () => {
+      for (let seed = 0; seed < 100; seed++) {
+        const current = first(seed);
+        const comp = rollComp(team, settings(), {}, seeded(seed + 1000), AGENTS, {
+          current,
+          keptIds: ["a"],
+        });
+        for (const i of [1, 2, 3, 4]) expect(comp[i].agent).not.toBe(current[i].agent);
+      }
+    });
+
+    it("counts the locked picks toward the role minimums", () => {
+      const min = { duelist: 1, initiator: 1, controller: 1, sentinel: 1 };
+      for (let seed = 0; seed < 100; seed++) {
+        const current = first(seed, min);
+        const comp = rollComp(team, settings(min), {}, seeded(seed + 1000), AGENTS, {
+          current,
+          keptIds: ["a", "b"],
+        });
+        for (const role of Object.keys(min) as Role[]) expect(countRole(comp, role)).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it("rolls a player who joined after the comp was made", () => {
+      const current = first(3).slice(0, 4);
+      const comp = rollComp(team, settings(), {}, seeded(9), AGENTS, { current, keptIds: ["a", "b", "c", "d"] });
+      expect(comp).toHaveLength(5);
+      expect(comp.slice(0, 4)).toEqual(current);
+    });
+
+    it("refuses when everyone is locked", () => {
+      const current = first(1);
+      expect(() =>
+        rollComp(team, settings(), {}, seeded(1), AGENTS, { current, keptIds: ["a", "b", "c", "d", "e"] }),
+      ).toThrow(RollError);
+    });
+
+    it("fails with the usual error when the locked picks leave no valid comp", () => {
+      const current: Assignment[] = [
+        { playerId: "a", agent: "Jett", role: "duelist" },
+        { playerId: "b", agent: "Sage", role: "sentinel" },
+      ];
+      const two = [player("a"), player("b"), player("c", [], ["controller", "initiator", "sentinel"])];
+      const needsController = settings({ controller: 1 });
+      expect(() =>
+        rollComp(two, needsController, {}, seeded(1), AGENTS, { current, keptIds: ["a", "b"] }),
+      ).toThrow(RollError);
+    });
+  });
 });
