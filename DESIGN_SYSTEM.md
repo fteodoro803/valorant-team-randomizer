@@ -60,6 +60,10 @@ Text colours were lightened where the fill failed 4.5:1 contrast on its tint.
 | Party member row | `PlayerRow.tsx` | A joined member's name is plain text in the name box's frame, with a status dot inside its right end: filled teal when connected, a hollow grey ring when offline, with the name dimmed. The words stay in the label and hover title. The menu offers only Remove from team, since their name and bans come from their own device (D22) |
 | Member page | `MemberView.tsx` | What a joined friend sees: Back to Projects and Leave party on one row, the title and party code under it, then the comp strip (before a roll the same five slots as empty portraits with each name, headed "Waiting for the roll"), then Your bans. There is no Roll button or bar, since only the host rolls (D26), and under the comp a line says "Not locked in yet" or "Locked in". There is no Team panel: the name is under each portrait and the online dot is on it (D23). Bans are inline and are the same picker as the Bans dialog, headed "Roles you never want" instead of "Roles they never want" (D23 follow-up). While joining, the page says "Connecting to the party…" and then "Asking the host to let you in…", and Leave party reads Cancel (D21) |
 
+## Logo
+
+The icon (`public/favicon.svg`) is a die face on the panel colour with an accent-red outline and five pips, one per player: duelist red top left, initiator amber top right, light centre, controller purple bottom left, sentinel teal bottom right. It uses the same hex values as the tokens above, and the favicon link is relative (`./favicon.svg`) to suit the Lab hosting (D14). It is favicon-only, not shown in the app's header.
+
 ## Where the build differs from the canvas
 
 - **Agent art is 128 px**, so wide-screen cards enlarge it about 1.6 times and look slightly soft. Larger icons were looked into and dropped: the wiki's image host blocks scripted downloads, and the existing icons are the best available (D13).
