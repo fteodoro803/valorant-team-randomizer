@@ -1,4 +1,4 @@
-import type { Player, Role, Roster, Settings } from "./types";
+import type { Player, Role, Roster, Settings, Teammate } from "./types";
 import { MAX_PLAYERS, ROLES } from "./types";
 
 const isStringList = (value: unknown): value is string[] =>
@@ -31,6 +31,21 @@ export function parsePlayers(value: unknown): Player[] | null {
     players.push({ id: p.id, name: p.name, excludedAgents: p.excludedAgents, bannedRoles });
   }
   return players;
+}
+
+/**
+ * Reads the saved random teammates back, or null if the list isn't usable.
+ *
+ * At most four are kept, since the team always has at least one player of its own.
+ */
+export function parseTeammates(value: unknown): Teammate[] | null {
+  if (!Array.isArray(value)) return null;
+  const teammates: Teammate[] = [];
+  for (const t of value.slice(0, MAX_PLAYERS - 1)) {
+    if (typeof t?.id !== "string" || (t.agent !== null && typeof t.agent !== "string")) return null;
+    teammates.push({ id: t.id, agent: t.agent });
+  }
+  return teammates;
 }
 
 /** Reads the saved players back into a Roster, or null if it isn't usable. */

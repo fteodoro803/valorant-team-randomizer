@@ -5,6 +5,8 @@ import type { Assignment, Player } from "../lib/types";
 interface Props {
   comp: Assignment[];
   players: Player[];
+  /** Random teammates' picks, drawn greyed after the players' cards. They aren't part of the team's own comp, so they can't be locked. */
+  others?: Assignment[];
   /** Whether the host has locked this comp in. Locked comps are in history, the rest are still just a pick. */
   locked: boolean;
   /** A party member's page passes these so their own portrait is outlined and each portrait shows who is online. */
@@ -51,10 +53,12 @@ function LockBadge() {
  * section is a live region, so a screen reader hears the new comp. The role is always in the
  * text, though the strip hides it visually and leaves the colour to say it.
  *
+ * Random teammates follow the players, dimmed with a dashed outline and no name. Screen readers still hear "Random teammate".
+ *
  * On the host's page (when `onToggleKept` is given) each card is a button that locks or unlocks
  * that player's pick, shown as a ring and a padlock (D27). A locked-in comp can't be edited.
  */
-export function CompResult({ comp, players, locked, you, onlineOf, kept = [], allKept = false, onToggleKept, onClearKept }: Props) {
+export function CompResult({ comp, players, others = [], locked, you, onlineOf, kept = [], allKept = false, onToggleKept, onClearKept }: Props) {
   const nameOf = (id: string) => {
     const index = players.findIndex((p) => p.id === id);
     return players[index]?.name || `Player ${index + 1}`;
@@ -99,6 +103,21 @@ export function CompResult({ comp, players, locked, you, onlineOf, kept = [], al
             </li>
           );
         })}
+        {/* Random teammates: the same card, dimmed and dashed so it's plain they aren't on the team, and never tappable */}
+        {others.map((pick) => (
+          <li key={`${pick.playerId}-${pick.agent}`} className="card-item">
+            <div className={`card ${pick.role}`} data-outside="true">
+              <span className="card-art">
+                <img src={agentIconUrl(pick.agent)} alt="" />
+              </span>
+              <div className="card-body">
+                <span className="card-role">{pick.role}</span>
+                <span className="card-agent">{pick.agent}</span>
+                <span className="sr-only">Random teammate</span>
+              </div>
+            </div>
+          </li>
+        ))}
       </ul>
       {/* Note: what Roll will do while picks are locked, otherwise whether the comp has reached history */}
       {editable && kept.length > 0 ? (

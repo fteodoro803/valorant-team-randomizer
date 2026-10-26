@@ -27,6 +27,18 @@ export interface Settings {
   historyAware: boolean;
 }
 
+/**
+ * A random teammate: someone on the team who isn't using the app.
+ *
+ * Only their agent matters, once they have picked it. They are never rolled, never saved to
+ * history, and they take one of the team's five slots.
+ */
+export interface Teammate {
+  id: string;
+  /** The agent they picked, or null while they haven't picked yet. */
+  agent: string | null;
+}
+
 /** One agent given to one player. */
 export interface Assignment {
   playerId: string;

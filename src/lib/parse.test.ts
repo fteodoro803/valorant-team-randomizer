@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePlayers, parseRoster, parseSettings } from "./parse";
+import { parsePlayers, parseRoster, parseSettings, parseTeammates } from "./parse";
 
 describe("parsePlayers", () => {
   it("fills in an empty role ban list for players saved before role bans existed", () => {
@@ -50,5 +50,27 @@ describe("parseSettings", () => {
     expect(parseSettings(good)).toEqual(good);
     expect(parseSettings({ ...good, historyAware: "yes" })).toBeNull();
     expect(parseSettings(null)).toBeNull();
+  });
+});
+
+describe("parseTeammates", () => {
+  it("reads teammates with and without an agent", () => {
+    const saved = [{ id: "a", agent: "Jett" }, { id: "b", agent: null }];
+    expect(parseTeammates(saved)).toEqual(saved);
+  });
+
+  it("accepts an empty list", () => {
+    expect(parseTeammates([])).toEqual([]);
+  });
+
+  it("keeps at most four, since the team always has a player of its own", () => {
+    const saved = Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, agent: null }));
+    expect(parseTeammates(saved)?.map((t) => t.id)).toEqual(["t0", "t1", "t2", "t3"]);
+  });
+
+  it("rejects something that is not a list, a missing id and an agent that is not a name", () => {
+    expect(parseTeammates({})).toBeNull();
+    expect(parseTeammates([{ agent: "Jett" }])).toBeNull();
+    expect(parseTeammates([{ id: "a", agent: 4 }])).toBeNull();
   });
 });
