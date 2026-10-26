@@ -26,6 +26,10 @@ export interface Reroll {
  * given again, and a rerolled player never gets the agent they had, since they
  * asked for a change. The result is still in team order.
  *
+ * `taken` are the picks of random teammates who are on the team but not rolled for: their agents
+ * can't be given, their roles count toward the minimums, and they are not in the result. A locked
+ * pick that clashes with a taken agent is dropped, so that player is rolled again.
+ *
  * Pure: all randomness comes from `rng`, so a roll can be replayed in tests.
  * Throws a RollError when the settings can't be met.
  */
@@ -36,24 +40,30 @@ export function rollComp(
   rng: () => number = Math.random,
   agents: Agent[] = AGENTS,
   reroll?: Reroll,
+  taken: Assignment[] = [],
 ): Assignment[] {
   // 1. Split the team into the picks that stay and the players who are rolled, and take the
-  //    kept agents and roles out of what the rolled players can be given.
-  const kept = reroll ? reroll.current.filter((pick) => reroll.keptIds.includes(pick.playerId)) : [];
+  //    kept and taken agents and roles out of what the rolled players can be given.
+  const kept = reroll
+    ? reroll.current.filter(
+        (pick) => reroll.keptIds.includes(pick.playerId) && !taken.some((t) => t.agent === pick.agent),
+      )
+    : [];
+  const fixed = [...kept, ...taken];
   const keptIds = new Set(kept.map((pick) => pick.playerId));
   const open = players
     .filter((p) => !keptIds.has(p.id))
     .map((p) => withoutCurrentAgent(p, reroll?.current));
   if (open.length === 0) throw new RollError("Everyone is locked. Tap someone to change them.");
-  const pool = agents.filter((a) => !kept.some((pick) => pick.agent === a.name));
+  const pool = agents.filter((a) => !fixed.some((pick) => pick.agent === a.name));
   // A full roll checks the minimums as typed, so a bad one is still reported rather than clamped away.
   const owed: Settings =
-    kept.length === 0
+    fixed.length === 0
       ? settings
       : {
           ...settings,
           minPerRole: Object.fromEntries(
-            ROLES.map((role) => [role, Math.max(0, settings.minPerRole[role] - kept.filter((k) => k.role === role).length)]),
+            ROLES.map((role) => [role, Math.max(0, settings.minPerRole[role] - fixed.filter((k) => k.role === role).length)]),
           ) as Settings["minPerRole"],
         };
 

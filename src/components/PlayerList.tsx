@@ -1,14 +1,19 @@
 import type { HostStatus } from "../hooks/useParty";
 import { PlusIcon } from "./icons";
 import { PlayerRow } from "./PlayerRow";
+import { TeammateRow } from "./TeammateRow";
 import { addSavedToTeam, playerKey } from "../lib/roster";
-import type { Player, Roster } from "../lib/types";
+import { addTeammate, slotsForPlayers } from "../lib/teammates";
+import type { Player, Roster, Teammate } from "../lib/types";
 import { MAX_PLAYERS } from "../lib/types";
 
 interface Props {
   players: Player[];
+  /** Random teammates: on the team but not using the app. They share the team's five slots. */
+  teammates: Teammate[];
   roster: Roster;
   onChange: (players: Player[]) => void;
+  onTeammatesChange: (teammates: Teammate[]) => void;
   /** Take a player off the team. With `forget`, also delete their saved details and history. */
   onRemove: (player: Player, forget: boolean) => void;
   /** Forget a saved person and their history, by their roster key. */
@@ -18,8 +23,8 @@ interface Props {
 }
 
 /**
- * The team: a row for each player with Add player as a dashed row under the last one, Start a party beside the
- * heading, and a bench of saved people.
+ * The team: a row for each player, then a greyed row for each random teammate, with Add player and Add random
+ * teammate as a dashed row under the last one, Start a party beside the heading, and a bench of saved people.
  *
  * While a party is open the heading carries its code in brackets and the same button reads Stop party. A joined
  * friend's row is drawn by PlayerRow, with its own status dot, so there is no count of who is in.
@@ -29,9 +34,14 @@ interface Props {
  * saved people who are off the team, as chips: tap one to add them back, or the x to
  * forget them. It disappears when nobody is off the team, so it never repeats the rows above.
  */
-export function PlayerList({ players, roster, onChange, onRemove, onForget, party }: Props) {
+export function PlayerList({ players, teammates, roster, onChange, onTeammatesChange, onRemove, onForget, party }: Props) {
   const update = (id: string, patch: Partial<Player>) =>
     onChange(players.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+
+  const full = players.length + teammates.length >= MAX_PLAYERS;
+  const fullMessage = `A team can have at most ${MAX_PLAYERS} players.`;
+  const updateTeammate = (id: string, agent: string | null) =>
+    onTeammatesChange(teammates.map((t) => (t.id === id ? { ...t, agent } : t)));
 
   const bench = Object.entries(roster).filter(([key]) => !players.some((p) => playerKey(p) === key));
 
@@ -76,19 +86,42 @@ export function PlayerList({ players, roster, onChange, onRemove, onForget, part
             onRemove={(forget) => onRemove(player, forget)}
           />
         ))}
-        {/* Add player: a dashed row where the next player would go */}
-        <li>
+        {/* Random teammates: greyed rows for people on the team who aren't using the app */}
+        {teammates.map((teammate) => (
+          <TeammateRow
+            key={teammate.id}
+            teammate={teammate}
+            takenByOthers={teammates.filter((t) => t.id !== teammate.id && t.agent).map((t) => t.agent!)}
+            onPick={(agent) => updateTeammate(teammate.id, agent)}
+            onRemove={() => onTeammatesChange(teammates.filter((t) => t.id !== teammate.id))}
+          />
+        ))}
+        {/* Add: dashed buttons where the next player, or a random teammate, would go */}
+        <li className="add-row">
           <button
             type="button"
             className="add-player"
-            disabled={players.length >= MAX_PLAYERS}
-            title={players.length >= MAX_PLAYERS ? `A team can have at most ${MAX_PLAYERS} players.` : undefined}
+            disabled={full}
+            title={full ? fullMessage : undefined}
             onClick={() =>
               onChange([...players, { id: crypto.randomUUID(), name: "", excludedAgents: [], bannedRoles: [] }])
             }
           >
             <PlusIcon size={16} />
             Add player
+          </button>
+          <button
+            type="button"
+            className="add-player"
+            disabled={full}
+            title={full ? fullMessage : "Someone on your team who isn't using the app, with the agent they picked"}
+            onClick={() => {
+              const next = addTeammate(players, teammates, crypto.randomUUID());
+              if (next) onTeammatesChange(next);
+            }}
+          >
+            <PlusIcon size={16} />
+            Add random teammate
           </button>
         </li>
       </ul>
@@ -99,7 +132,7 @@ export function PlayerList({ players, roster, onChange, onRemove, onForget, part
           <p className="bench-label">Saved</p>
           <ul className="bench-chips">
             {bench.map(([key, saved]) => {
-              const hasRoom = addSavedToTeam(players, saved, "check") !== null;
+              const hasRoom = addSavedToTeam(players, saved, "check", slotsForPlayers(teammates)) !== null;
               return (
                 <li key={key} className="bench-chip">
                   <button
@@ -109,7 +142,7 @@ export function PlayerList({ players, roster, onChange, onRemove, onForget, part
                     title={hasRoom ? "Add to the team" : `A team can have at most ${MAX_PLAYERS} players.`}
                     aria-label={`Add ${saved.name} to the team`}
                     onClick={() => {
-                      const next = addSavedToTeam(players, saved, crypto.randomUUID());
+                      const next = addSavedToTeam(players, saved, crypto.randomUUID(), slotsForPlayers(teammates));
                       if (next) onChange(next);
                     }}
                   >

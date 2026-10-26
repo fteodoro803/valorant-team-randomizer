@@ -261,4 +261,55 @@ describe("rollComp", () => {
       ).toThrow(RollError);
     });
   });
+
+  describe("with random teammates who already picked", () => {
+    const ours = [player("a"), player("b"), player("c")];
+    const taken: Assignment[] = [
+      { playerId: "t1", agent: "Jett", role: "duelist" },
+      { playerId: "t2", agent: "Sage", role: "sentinel" },
+    ];
+
+    it("rolls only our players and never gives a taken agent", () => {
+      for (let seed = 0; seed < 200; seed++) {
+        const comp = rollComp(ours, settings(), {}, seeded(seed), AGENTS, undefined, taken);
+        expect(comp.map((p) => p.playerId)).toEqual(["a", "b", "c"]);
+        expect(comp.map((p) => p.agent)).not.toContain("Jett");
+        expect(comp.map((p) => p.agent)).not.toContain("Sage");
+        expect(new Set(comp.map((p) => p.agent)).size).toBe(3);
+      }
+    });
+
+    it("counts the taken roles toward the minimums", () => {
+      // The teammates already cover a duelist and a sentinel, so our three only owe the other two roles.
+      const min = { duelist: 1, initiator: 1, controller: 1, sentinel: 1 };
+      for (let seed = 0; seed < 100; seed++) {
+        const comp = rollComp(ours, settings(min), {}, seeded(seed), AGENTS, undefined, taken);
+        const all = [...comp, ...taken];
+        for (const role of Object.keys(min) as Role[]) expect(countRole(all, role)).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it("drops a locked pick that clashes with a taken agent, so that player is rolled again", () => {
+      const current: Assignment[] = [
+        { playerId: "a", agent: "Jett", role: "duelist" },
+        { playerId: "b", agent: "Fade", role: "initiator" },
+        { playerId: "c", agent: "Omen", role: "controller" },
+      ];
+      for (let seed = 0; seed < 100; seed++) {
+        const comp = rollComp(ours, settings(), {}, seeded(seed), AGENTS, { current, keptIds: ["a", "b"] }, taken);
+        expect(comp[0].agent).not.toBe("Jett");
+        expect(comp[1]).toEqual(current[1]);
+      }
+    });
+
+    it("fails with the usual error when the taken agents leave no valid comp", () => {
+      const noDuelists = [player("a", [], ["initiator", "controller", "sentinel"])];
+      const everyDuelist = AGENTS.filter((a) => a.role === "duelist").map((a, i) => ({
+        playerId: `t${i}`,
+        agent: a.name,
+        role: a.role,
+      }));
+      expect(() => rollComp(noDuelists, settings(), {}, seeded(1), AGENTS, undefined, everyDuelist)).toThrow(RollError);
+    });
+  });
 });

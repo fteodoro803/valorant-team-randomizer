@@ -13,7 +13,7 @@ import { useHostParty, useMemberParty } from "./hooks/useParty";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { createLocalHistoryStore, recordRoll } from "./lib/history";
 import { fitMinimums, totalMinimums } from "./lib/minimums";
-import { parsePlayers, parseRoster, parseSettings } from "./lib/parse";
+import { parsePlayers, parseRoster, parseSettings, parseTeammates } from "./lib/parse";
 import {
   admitMember,
   cleanName,
@@ -51,7 +51,8 @@ import {
   toRollPlayers,
 } from "./lib/roster";
 import { browserStorage } from "./lib/storage";
-import type { Assignment, Player, Roster, Settings } from "./lib/types";
+import { slotsForPlayers, takenPicks, teamSize } from "./lib/teammates";
+import type { Assignment, Player, Roster, Settings, Teammate } from "./lib/types";
 
 /** How many times a device that lost its party tries to get back in, and how long it waits between tries. */
 const MAX_REJOIN_TRIES = 3;
@@ -67,6 +68,8 @@ const defaultPlayers: Player[] = [1].map((n) => ({
   bannedRoles: [],
 }));
 
+const defaultTeammates: Teammate[] = [];
+
 const defaultSettings: Settings = {
   minPerRole: { duelist: 0, initiator: 0, controller: 0, sentinel: 0 },
   historyAware: true,
@@ -80,10 +83,13 @@ interface RolledComp {
   id: number;
   /** True once Lock in has saved this comp to history. A new roll starts unlocked. */
   locked: boolean;
+  /** The random teammates' picks the roll worked around, shown greyed after the players' cards. Never saved to history. */
+  others: Assignment[];
 }
 
 export default function App() {
   const [players, setPlayers] = usePersistentState(storage, "valorant-randomizer-players", defaultPlayers, parsePlayers);
+  const [teammates, setTeammates] = usePersistentState(storage, "valorant-randomizer-teammates", defaultTeammates, parseTeammates);
   const [settings, setSettings] = usePersistentState(storage, "valorant-randomizer-settings", defaultSettings, parseSettings);
   const [roster, setRoster] = usePersistentState<Roster>(storage, "valorant-randomizer-saved-players", {}, parseRoster);
   // History filed under old player slots can't be tied to anyone, so it is dropped on load (D8).
@@ -124,13 +130,23 @@ export default function App() {
   // The newest team, roster, history, settings and roll, kept current as soon as a handler changes them.
   // Messages from party members arrive outside React's renders, so reading state from the render
   // that created the handler could miss the message just before it.
-  const live = useRef({ players, roster, history, settings, rolled, kept });
+  const live = useRef({ players, teammates, roster, history, settings, rolled, kept });
   useEffect(() => {
-    live.current = { players, roster, history, settings, rolled, kept };
+    live.current = { players, teammates, roster, history, settings, rolled, kept };
   });
   const commitPlayers = (next: Player[]) => {
     live.current.players = next;
     setPlayers(next);
+  };
+  // Random teammates change the size the role minimums can cover, so the minimums are lowered to fit.
+  const commitTeammates = (next: Teammate[]) => {
+    live.current.teammates = next;
+    setTeammates(next);
+    const { players, settings } = live.current;
+    const fitted = fitMinimums(settings.minPerRole, teamSize(players, next));
+    if (totalMinimums(fitted) !== totalMinimums(settings.minPerRole)) {
+      setSettings({ ...settings, minPerRole: fitted });
+    }
   };
   const commitRoster = (next: Roster) => {
     live.current.roster = next;
@@ -189,11 +205,11 @@ export default function App() {
 
   // 1. Check names, 2. roll, 3. show it, unlocked. A roll only picks a comp: history is written
   //    when the host locks it in, so rerolling doesn't skew it (D26). If some players' picks are
-  //    locked (D27) and the comp isn't locked in yet, only the others are rolled.
-  //    Reads the newest state through `live`.
+  //    locked (D27) and the comp isn't locked in yet, only the others are rolled. Random teammates'
+  //    agents are worked around, not rolled. Reads the newest state through `live`.
   const roll = () => {
     setRollPresses((n) => n + 1);
-    const { players, roster, history, settings, rolled, kept } = live.current;
+    const { players, teammates, roster, history, settings, rolled, kept } = live.current;
     const duplicate = findDuplicateName(players);
     if (duplicate) {
       setError(`Two players are both called ${duplicate}. Give them different names.`);
@@ -202,6 +218,7 @@ export default function App() {
     try {
       const rollPlayers = toRollPlayers(players);
       const keptNow = rolled && !rolled.locked ? kept.filter((id) => rollPlayers.some((p) => p.id === id)) : [];
+      const others = takenPicks(teammates);
       const comp = rollComp(
         rollPlayers,
         settings,
@@ -209,10 +226,20 @@ export default function App() {
         undefined,
         undefined,
         keptNow.length > 0 && rolled ? { current: rolled.comp, keptIds: keptNow } : undefined,
+        others,
       );
-      const nextRolled = { comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1, locked: false };
+      const nextRolled = { comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1, locked: false, others };
       live.current.rolled = nextRolled;
       setRolled(nextRolled);
+      // A lock whose pick was dropped (it clashed with a random teammate's agent) is gone with it.
+      if (rolled) {
+        const agentOf = (picks: Assignment[], id: string) => picks.find((c) => c.playerId === id)?.agent;
+        const stillKept = keptNow.filter((id) => agentOf(comp, id) === agentOf(rolled.comp, id));
+        if (stillKept.length !== keptNow.length) {
+          live.current.kept = stillKept;
+          setKept(stillKept);
+        }
+      }
       setError(null);
       commitRoster(rememberPlayers(roster, players));
     } catch (e) {
@@ -262,7 +289,7 @@ export default function App() {
   // Remove keeps the person's saved details and history, forgetting deletes them (D9).
   const removePlayer = (player: Player, forgetThem: boolean) => {
     // Read from `live`, since a friend leaving the party arrives here from a message, not a render.
-    const { players, roster, history, settings } = live.current;
+    const { players, teammates, roster, history, settings } = live.current;
     // A party member who is removed is also disconnected, so they can't keep sending bans.
     if (player.member) host.kick(player.id);
     const removed = removeFromTeam(players, roster, history, player, forgetThem);
@@ -274,7 +301,7 @@ export default function App() {
     commitPlayers(next.players);
     commitRoster(next.roster);
     // With fewer players the role minimums may no longer fit, so lower them to match.
-    const fitted = fitMinimums(settings.minPerRole, next.players.length);
+    const fitted = fitMinimums(settings.minPerRole, teamSize(next.players, teammates));
     if (totalMinimums(fitted) !== totalMinimums(settings.minPerRole)) {
       setSettings({ ...settings, minPerRole: fitted });
     }
@@ -301,7 +328,7 @@ export default function App() {
       let team = live.current.players;
       const sameName = team.find((p) => p.member === "online" && playerKey(p) === keyForName(message.name));
       if (sameName && host.isQuiet(sameName.id)) team = setMemberStatus(team, sameName.id, "offline");
-      const result = admitMember(team, message, crypto.randomUUID());
+      const result = admitMember(team, message, crypto.randomUUID(), slotsForPlayers(live.current.teammates));
       if ("refused" in result) {
         host.send(peerId, { type: "refused", reason: result.refused });
         host.drop(peerId);
@@ -535,6 +562,7 @@ export default function App() {
           <CompResult
             comp={rolled.comp}
             players={rolled.players}
+            others={rolled.others}
             locked={rolled.locked}
             kept={keptShown}
             allKept={allKept}
@@ -549,8 +577,10 @@ export default function App() {
       <div className="columns">
         <PlayerList
           players={players}
+          teammates={teammates}
           roster={roster}
           onChange={commitPlayers}
+          onTeammatesChange={commitTeammates}
           onRemove={removePlayer}
           onForget={forget}
           party={{
@@ -560,7 +590,7 @@ export default function App() {
             onStop: stopParty,
           }}
         />
-        <SettingsPanel settings={settings} playerCount={players.length} onChange={setSettings} />
+        <SettingsPanel settings={settings} playerCount={teamSize(players, teammates)} onChange={setSettings} />
       </div>
       <HistoryView players={toRollPlayers(players)} history={history} onClear={clearHistory} />
 
