@@ -458,6 +458,13 @@ input:not([type]) {
   font-size: 1.6rem;
 }
 
+/* On the strip a waiting person's name sits under the portrait like an agent's name does, but keeps the case they typed. */
+.card.slot .card-agent {
+  color: var(--text-soft);
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
 /* The member's own portrait is outlined, so they find themselves at a glance. */
 .card[data-you="true"] .card-art {
   outline: 2px solid var(--text);
@@ -1208,33 +1215,34 @@ input:not([type]) {
     border-radius: 0;
   }
 
-  .card[data-you="true"] .card-art {
-    outline: 0;
-  }
-
-  .card[data-you="true"] {
-    outline: 2px solid var(--text);
-    outline-offset: -2px;
-  }
-
-  /* From here the ring goes round the whole card, and the padlock sits inside the portrait's top right. */
+  /*
+   * From here the rings go round the whole card, drawn as an overlay border rather than an outline,
+   * because the portrait is positioned and would paint over an outline's right edge.
+   * Your own card gets 2px, a locked pick 3px, and the padlock sits inside the portrait's top right.
+   */
+  .card[data-you="true"] .card-art,
   .card[data-kept="true"] .card-art {
     outline: 0;
   }
 
-  /* An overlay rather than an outline, because the portrait is positioned and would paint over an outline's right edge. */
+  .card[data-you="true"],
   .card[data-kept="true"] {
     position: relative;
   }
 
+  .card[data-you="true"]::after,
   .card[data-kept="true"]::after {
     content: "";
     position: absolute;
     inset: 0;
     z-index: 2;
-    border: 3px solid var(--text);
+    border: 2px solid var(--text);
     border-radius: inherit;
     pointer-events: none;
+  }
+
+  .card[data-kept="true"]::after {
+    border-width: 3px;
   }
 
   .card-lock {

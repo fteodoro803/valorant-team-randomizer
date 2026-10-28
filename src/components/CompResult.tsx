@@ -142,7 +142,9 @@ interface StripProps {
 }
 
 /**
- * The same strip before anything is rolled: an empty portrait for each person on the team.
+ * The same strip before anything is rolled: a "?" portrait for each person on the team, laid out
+ * like a rolled card (a Waiting label where the role goes, the name where the agent goes) so the roll
+ * fills the same cards in rather than swapping them for different ones (D30).
  *
  * It keeps a joiner's page from being blank while they wait, and it is the team list, so a joiner
  * needs no separate Team panel.
@@ -156,12 +158,13 @@ export function TeamStrip({ team, you }: StripProps) {
           <li key={member.name} className="card slot" data-you={keyForName(member.name) === keyForName(you)}>
             <span className="card-art">
               <span className="card-initial" aria-hidden="true">
-                {member.name.slice(0, 1)}
+                ?
               </span>
               <OnlineDot name={member.name} online={member.online} />
             </span>
             <div className="card-body">
-              <span className="card-player">{member.name}</span>
+              <span className="card-role">Waiting</span>
+              <span className="card-agent">{member.name}</span>
             </div>
           </li>
         ))}
