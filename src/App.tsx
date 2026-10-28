@@ -3,9 +3,11 @@ import { CompResult } from "./components/CompResult";
 import { HistoryView } from "./components/HistoryView";
 import { Disclaimer } from "./components/Disclaimer";
 import { EntryPage } from "./components/EntryPage";
+import { HomeButton } from "./components/HomeButton";
 import { MemberView } from "./components/MemberView";
 import { PlayerList } from "./components/PlayerList";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { StopPartyDialog } from "./components/StopPartyDialog";
 import { Toast } from "./components/Toast";
 import type { ToastMessage } from "./components/Toast";
 import { usePersistentState } from "./hooks/usePersistentState";
@@ -29,13 +31,10 @@ import type { MemberMessage, SharedRoll, TeamMember } from "./lib/party";
 import {
   clearLastParty,
   clearSession,
-  hasOpenedCreate,
   loadLastParty,
   loadSession,
-  markOpenedCreate,
   saveLastParty,
   saveSession,
-  startsOnEntry,
 } from "./lib/partySession";
 import { RollError, rollComp } from "./lib/roll";
 import {
@@ -103,10 +102,10 @@ export default function App() {
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Party state. A member's page shows what the host last sent (`shared`) and their own details (`me`).
-  // The entry page opens first, unless this device is in a party or has opened Create before.
-  const [screen, setScreen] = useState<"entry" | "main">(() =>
-    startsOnEntry(loadSession(storage) !== null, hasOpenedCreate(storage)) ? "entry" : "main",
-  );
+  // The entry page always opens first, so Home is the one way to switch between hosting and joining.
+  const [screen, setScreen] = useState<"entry" | "main">("entry");
+  // True while Home is asking whether to end a party that friends are still in.
+  const [confirmingHome, setConfirmingHome] = useState(false);
   // What was typed into the join form, kept while the join is tried, so a mistyped code doesn't cost the name.
   const [attempt, setAttempt] = useState<{ name: string; code: string } | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -486,10 +485,21 @@ export default function App() {
     setScreen("entry");
   };
 
-  // Create opens the main page, and remembers it so the entry page stops greeting this device.
-  const create = () => {
-    markOpenedCreate(storage);
-    setScreen("main");
+  const create = () => setScreen("main");
+
+  // Home ends any party this device is hosting, since a party only lives on the main page. It asks first
+  // when friends are connected, because one tap would otherwise end their game.
+  const friendsInParty = players.filter((p) => p.member === "online").length;
+  const goHome = () => {
+    if (host.status === "idle") return setScreen("entry");
+    if (friendsInParty > 0) return setConfirmingHome(true);
+    stopParty();
+    setScreen("entry");
+  };
+  const stopAndGoHome = () => {
+    setConfirmingHome(false);
+    stopParty();
+    setScreen("entry");
   };
 
   // A friend's page. It has no Roll bar, so the toast can sit lower.
@@ -530,15 +540,7 @@ export default function App() {
       {/* Header: title on the left, Roll and Lock in on the right on wide screens and pinned to the bottom on phones */}
       <header className="app-head">
         <div>
-          <div className="head-links">
-            {/* The portfolio's Lab page is one level up from where this is served (D14). */}
-            <a className="back-link" href="../">
-              ← Back to Projects
-            </a>
-            <button type="button" className="menu-link" onClick={() => setScreen("entry")}>
-              Menu
-            </button>
-          </div>
+          <HomeButton label="Home" onClick={goHome} />
           <h1>Team randomiser</h1>
         </div>
         <div className="roll-bar">
@@ -596,6 +598,9 @@ export default function App() {
 
       <Disclaimer />
       <Toast toast={toast} onClose={closeToast} />
+      {confirmingHome && (
+        <StopPartyDialog friends={friendsInParty} onStop={stopAndGoHome} onCancel={() => setConfirmingHome(false)} />
+      )}
     </main>
   );
 }

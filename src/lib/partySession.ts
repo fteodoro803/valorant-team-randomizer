@@ -79,27 +79,3 @@ export function clearSession(storage: KeyValueStorage) {
     // Nothing to clear if nothing could be saved.
   }
 }
-
-/** Set the first time someone opens Create, so the entry page can stop greeting people who use the app to roll. */
-const OPENED_CREATE_KEY = "valorant-randomizer-opened-create";
-
-/** True once this device has opened Create. A friend who only ever joins never sets it. */
-export function hasOpenedCreate(storage: KeyValueStorage): boolean {
-  try {
-    return storage.getItem(OPENED_CREATE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-/** Remembers that this device has opened Create. A failed save just means seeing the entry page again. */
-export function markOpenedCreate(storage: KeyValueStorage) {
-  try {
-    storage.setItem(OPENED_CREATE_KEY, "1");
-  } catch {
-    // The entry page showing once more is harmless.
-  }
-}
-
-/** The entry page opens first unless the device is in a party or has used Create before. */
-export const startsOnEntry = (inParty: boolean, openedCreate: boolean): boolean => !inParty && !openedCreate;

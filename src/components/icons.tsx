@@ -81,3 +81,19 @@ export const CloseIcon = (props: IconProps) => (
     <path d="M18 6L6 18" />
   </Icon>
 );
+
+/** A house, for the way back to the entry page. */
+export const HomeIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 11l8-7 8 7" />
+    <path d="M6 10v9h4v-5h4v5h4v-9" />
+  </Icon>
+);
+
+/** An arrow pointing right, for a button that moves on to the next page. */
+export const ArrowRightIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M5 12h14" />
+    <path d="M13 6l6 6-6 6" />
+  </Icon>
+);

@@ -1143,9 +1143,6 @@ input:not([type]) {
     flex: 0 1 auto;
   }
 
-  .member-head .head-links {
-    justify-content: flex-start;
-  }
 
   h1 {
     font-size: 2.3rem;
@@ -1454,28 +1451,66 @@ input:not([type]) {
 
 /* Party: the entry page, the party controls in the Team panel, the status dot and the toast */
 
-.head-links {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-}
-
-.menu-link {
-  padding: 0;
-  background: none;
+/* The way back to the entry page: a filled chip, so it reads as a button and not a link. */
+.home-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin-bottom: 8px;
+  padding: 0 16px 0 12px;
+  background: var(--panel-raised);
   border: 0;
-  border-radius: 0;
-  color: var(--text-soft);
-  font-size: 0.85rem;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.menu-link:hover {
+  border-radius: 22px;
   color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
 }
 
-/* Entry page: two choices, Create and Join a party */
+.home-button:hover {
+  background: var(--line);
+}
+
+/* Home's question before it ends a party with friends in it. */
+.confirm-dialog {
+  width: min(420px, calc(100% - 32px));
+  padding: 20px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(5, 9, 13, 0.7);
+}
+
+.confirm-dialog h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.confirm-dialog p {
+  margin: 10px 0 18px;
+  color: var(--text-soft);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-actions .ghost {
+  align-self: auto;
+  height: 44px;
+}
+
+/* Entry page: two choices, Host and Join a party */
 
 .entry {
   display: flex;
@@ -1491,24 +1526,42 @@ input:not([type]) {
   color: var(--muted);
 }
 
-/* Host is tinted rather than solid, so it is a clear choice without out-shouting the Join button. The tint is the duelist's. */
-.entry-create {
+/* Host is a solid button like Roll, so it reads as a button and not a panel. Its sentence sits under it as a caption. */
+.entry-host {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  gap: 8px;
+}
+
+.entry-create {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   width: 100%;
-  padding: 16px 18px;
-  background: #3a2029;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  color: var(--text);
-  text-align: left;
-  transition: border-color 0.15s;
+  height: 56px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s;
 }
 
 .entry-create:hover {
-  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+}
+
+.entry-caption {
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.9rem;
 }
 
 .entry-title {
@@ -1609,9 +1662,6 @@ input:not([type]) {
   flex: 1 1 100%;
 }
 
-.member-head .head-links {
-  justify-content: space-between;
-}
 
 .party-line {
   margin: 2px 0 0;
