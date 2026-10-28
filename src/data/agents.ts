@@ -14,10 +14,10 @@ export const agentIconUrl = (name: string): string =>
  * Every playable agent, grouped by role.
  *
  * Plain data so a new agent is one name added to its role. Checked against the
- * game on 23 October 2026 (29 agents). It won't update itself.
+ * game on 28 October 2026 (30 agents). It won't update itself.
  */
 export const AGENTS: Agent[] = [
-  ...byRole("duelist", ["Jett", "Phoenix", "Raze", "Reyna", "Yoru", "Neon", "Iso", "Waylay"]),
+  ...byRole("duelist", ["Jett", "Phoenix", "Raze", "Reyna", "Yoru", "Neon", "Iso", "Waylay", "Hush"]),
   ...byRole("initiator", ["Sova", "Breach", "KAY/O", "Fade", "Skye", "Gekko", "Tejo"]),
   ...byRole("controller", ["Brimstone", "Viper", "Omen", "Astra", "Harbor", "Clove", "Miks"]),
   ...byRole("sentinel", ["Cypher", "Killjoy", "Sage", "Chamber", "Deadlock", "Vyse", "Veto"]),
