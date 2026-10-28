@@ -1648,6 +1648,10 @@ input:not([type]) {
   margin-left: 8px;
   color: var(--accent-text);
   letter-spacing: 0.16em;
+}
+
+/* Only the code is selectable as one unit, so a tap or double-tap leaves the brackets out. */
+.party-code-text {
   user-select: all;
 }
 
