@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { CODE_LENGTH, cleanName, isPartyCode, normaliseCode } from "../lib/party";
 import { CodeBoxes } from "./CodeBoxes";
 import { Disclaimer } from "./Disclaimer";
+import { ArrowRightIcon } from "./icons";
 
 interface Props {
   /** The last party this device joined, within three hours, offered as a one-tap rejoin. */
@@ -26,9 +27,9 @@ const toBoxes = (code: string) => Array.from({ length: CODE_LENGTH }, (_, i) => 
 /**
  * The first page: Host a team, or Join a party.
  *
- * Host opens the main page, where a party can be started from the Team panel. Join is always open,
- * since most people arriving here are friends with a code: four boxes, a name, or a one-tap rejoin of
- * the last party above the tiles. The form checks the code's shape before anyone is called, so a typo
+ * This is always the first page, and Home on the other pages comes back to it. Host opens the main page,
+ * where a party can be started from the Team panel. Join is always open, since most people arriving here
+ * are friends with a code: four boxes, a name, or a one-tap rejoin of the last party above the buttons. The form checks the code's shape before anyone is called, so a typo
  * gets a plain message under the boxes instead of a wait.
  */
 export function EntryPage({ last, initial, onCreate, onJoin }: Props) {
@@ -68,11 +69,14 @@ export function EntryPage({ last, initial, onCreate, onJoin }: Props) {
         </button>
       )}
 
-      {/* Host: the main page */}
-      <button type="button" className="entry-create" onClick={onCreate}>
-        <span className="entry-title">Host</span>
-        <span>Build the team and roll. Friends can join from their phones.</span>
-      </button>
+      {/* Host: a solid button to the main page, with its sentence as a caption */}
+      <div className="entry-host">
+        <button type="button" className="entry-create" onClick={onCreate}>
+          <span>Host a team</span>
+          <ArrowRightIcon size={26} />
+        </button>
+        <p className="entry-caption">Build the team and roll. Friends can join from their phones.</p>
+      </div>
 
       {/* Join: a code and a name */}
       <form className="panel entry-join" onSubmit={submit}>

@@ -5,6 +5,7 @@ import type { Player } from "../lib/types";
 import { BanPicker } from "./BanPicker";
 import { CompResult, TeamStrip } from "./CompResult";
 import { Disclaimer } from "./Disclaimer";
+import { HomeButton } from "./HomeButton";
 
 interface Props {
   /** The member as they are on their own device. Their bans are saved here and sent to the host. */
@@ -41,17 +42,10 @@ export function MemberView({ me, code, status, step, shared, onChange, onLeave }
 
   return (
     <main className="app">
-      {/* Header: title and party code and Leave party beside the back link */}
+      {/* Header: Leave party above the title and party code */}
       <header className="app-head member-head">
         <div>
-          <div className="head-links">
-            <a className="back-link" href="../">
-              ← Back to Projects
-            </a>
-            <button type="button" className="menu-link" onClick={onLeave}>
-              {joined ? "Leave party" : "Cancel"}
-            </button>
-          </div>
+          <HomeButton label={joined ? "Leave party" : "Cancel"} onClick={onLeave} />
           <h1>Team randomiser</h1>
           {code && <p className="party-line">Party {code}</p>}
         </div>
