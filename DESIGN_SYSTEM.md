@@ -67,7 +67,7 @@ The icon (`public/favicon.svg`) is a die face on the panel colour with an accent
 
 ## Where the build differs from the canvas
 
-- **Agent art is 128 px**, so wide-screen cards enlarge it about 1.6 times and look slightly soft. Larger icons were looked into and dropped: the wiki's image host blocks scripted downloads, and the existing icons are the best available (D13).
+- **Agent art is 256 px**, from valorant-api.com, so wide-screen cards enlarge it less than the old 128 px set did and stay sharp (D-new1).
 - **Desktop cards are short rows, not the tall cards the canvas drew**, and the Team panel is tighter, so a comp and the whole Team panel fit a window about 1000 by 610. A tall card with a cropped portrait was tried and dropped because it hid the agent's face. Checked at 1000 by 610, 1440 by 900, 768 by 1024 and 1024 by 768. The longest name (Brimstone) fits at 1000 and 1440 wide. The Rules column never gets narrower than 312 px, so its stepper fits on a tablet in portrait.
 - **Rules has a short hint** ("Minimum per role") because the "At least" label was dropped from each row.
 - **The menu's Bans entry** shows its "Agents and roles they never want" caption on phones only.
