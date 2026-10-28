@@ -51,7 +51,12 @@ export function PlayerList({ players, teammates, roster, onChange, onTeammatesCh
       <div className="panel-head">
         <h2 className="section-label">
           Team
-          {party.code && <span className="party-code-tag">({party.code})</span>}
+          {/* The brackets sit outside the inner span so a tap selects just the code, ready to copy */}
+          {party.code && (
+            <span className="party-code-tag">
+              (<span className="party-code-text">{party.code}</span>)
+            </span>
+          )}
         </h2>
         <div className="panel-actions">
           {party.status === "open" ? (
