@@ -21,7 +21,7 @@ interface Props {
 }
 
 /**
- * Everything about one player in one window: their name, their bans, and taking them off the team (D-new2).
+ * Everything about one player in one window: their name, their bans, and taking them off the team (D33).
  *
  * Drawn by SheetDialog: a centred card on wide screens and a bottom sheet on phones. Changes apply
  * as they are made, so Done only closes it. Remove from team and Forget sit in a bar at the bottom,

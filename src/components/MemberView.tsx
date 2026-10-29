@@ -25,7 +25,7 @@ interface Props {
  * The page a party member sees: the team's five cards, then their own bans.
  *
  * The member never holds the team or rolls anything. They send their bans to the host, and show whatever the host sends back, so every phone matches.
- * The cards are the same five the host sees (D-new1), without taps: before a roll each person is a
+ * The cards are the same five the host sees (D32), without taps: before a roll each person is a
  * waiting card with their name, after a roll the agents, and the online dot sits on each portrait,
  * so there is no Team panel. The host's random teammates and the empty cards show too.
  */

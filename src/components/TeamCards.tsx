@@ -2,15 +2,15 @@ import { useState } from "react";
 import type { HostStatus } from "../hooks/useParty";
 import { buildCards } from "../lib/cards";
 import type { CardView } from "../lib/cards";
-import { addSavedToTeam, findSaved } from "../lib/roster";
+import { addSavedToTeam, findSaved, playerKey } from "../lib/roster";
 import { addTeammate, slotsForPlayers } from "../lib/teammates";
 import type { Assignment, Player, Roster, Teammate } from "../lib/types";
 import { MAX_PLAYERS } from "../lib/types";
 import { CardDialog } from "./CardDialog";
 import type { CardDialogTarget } from "./CardDialog";
 import { CardRow } from "./CardRow";
+import type { CardZones } from "./CardRow";
 import { ConfigureDialog } from "./ConfigureDialog";
-import { KebabIcon } from "./icons";
 
 interface Props {
   players: Player[];
@@ -21,9 +21,8 @@ interface Props {
   comp: Assignment[] | null;
   /** Whether the host has locked the roll in. A locked-in comp can't have picks locked or unlocked. */
   locked: boolean;
-  /** The roll keys of picks locked through the next Roll, and whether that is everyone. */
+  /** The roll keys of picks locked through the next Roll. */
   kept: string[];
-  allKept: boolean;
   onPlayersChange: (players: Player[]) => void;
   onTeammatesChange: (teammates: Teammate[]) => void;
   /** Take a player off the team. With `forget`, also delete their saved details and history. */
@@ -31,7 +30,8 @@ interface Props {
   /** Forget a saved person and their history, by their roster key. */
   onForget: (key: string) => void;
   onToggleKept: (rollId: string) => void;
-  onClearKept: () => void;
+  /** Give a player this agent by hand, and lock it for them. `rollId` is the player's roll key. */
+  onAssign: (rollId: string, agent: string) => void;
   /** The party this team is hosting, if any: its code once it is open, and how many friends are in. */
   party: { code: string | null; status: HostStatus; onStart: () => void; onStop: () => void };
 }
@@ -40,18 +40,18 @@ interface Props {
 type CardWindow = { kind: "add" } | { kind: "teammate"; id: string } | null;
 
 /**
- * The team: five cards that are both the team list and the roll's result (D-new1), with Start a party
+ * The team: five cards that are both the team list and the roll's result (D32), with Start a party
  * beside the heading.
  *
- * Tapping a card does the most useful thing for it:
- * 1. An empty card opens a window to add a player or a random teammate.
- * 2. A random teammate's card opens it to change their agent or remove them.
- * 3. A player's card locks their pick through the next Roll once there is one to lock (D27), and
- *    before that opens Configure.
- * Everything player-specific (name, bans, remove, forget) is in the Configure window, which the
- * three-dots button on a player's card opens at any time (D-new2). While a party is open the heading
- * carries its code, and a joined friend's card has its status dot and no name editor, since their
- * name comes from their own device.
+ * A player's card has three tappable parts (D36, D38):
+ * 1. The card itself opens a window that gives them an agent by hand. The pick is locked, so Roll
+ *    leaves it alone, and it works before the first roll too.
+ * 2. The strip across the top (a cog on a phone) opens Configure: the name, the bans, Remove from team and Forget (D33).
+ * 3. The bar along the bottom locks or unlocks the pick (D27), once there is an agent to lock.
+ * An Empty card opens the window to add a player or a random teammate. A random teammate's card opens
+ * a window to change their agent, and its bar removes them. After Lock in the portrait and the bar are
+ * greyed out until New, so the saved history can't be edited. While a party is open the heading
+ * carries its code, and a joined friend's card has its status dot.
  */
 export function TeamCards({
   players,
@@ -60,22 +60,22 @@ export function TeamCards({
   comp,
   locked,
   kept,
-  allKept,
   onPlayersChange,
   onTeammatesChange,
   onRemove,
   onForget,
   onToggleKept,
-  onClearKept,
+  onAssign,
   party,
 }: Props) {
   const [cardWindow, setCardWindow] = useState<CardWindow>(null);
-  // The player whose Configure window is open, by id so it survives their name being edited.
+  // The player whose Configure window is open, and the player whose Assign window is open, by id so they survive a name edit.
   const [configureFor, setConfigureFor] = useState<string | null>(null);
+  const [assignFor, setAssignFor] = useState<string | null>(null);
 
   const cards = buildCards(players, teammates, comp);
-  // Only a roll that isn't locked in yet can have its picks locked through the next Roll.
-  const editable = comp !== null && !locked;
+  // Whether every player has an agent, which is when the comp counts as rolled. Until then only the assigned picks are in it.
+  const everyoneHasAgent = comp !== null && players.every((p) => comp.some((c) => c.playerId === playerKey(p)));
   const closeCardWindow = () => setCardWindow(null);
   const openCardWindow = (next: CardWindow) => setCardWindow(next);
 
@@ -85,6 +85,20 @@ export function TeamCards({
     if (cardWindow.kind === "add") return players.length + teammates.length < MAX_PLAYERS ? { kind: "add" } : null;
     const teammate = teammates.find((t) => t.id === cardWindow.id);
     return teammate ? { kind: "teammate", teammate } : null;
+  })();
+
+  // The Assign window's target. The agents other people have are greyed out: the random teammates' and the other players' picks.
+  const assignIndex = players.findIndex((p) => p.id === assignFor);
+  const assignTarget = ((): CardDialogTarget | null => {
+    if (assignIndex === -1) return null;
+    const player = players[assignIndex];
+    const rollId = playerKey(player);
+    const mine = comp?.find((c) => c.playerId === rollId)?.agent ?? null;
+    const taken = [
+      ...teammates.flatMap((t) => (t.agent ? [t.agent] : [])),
+      ...(comp ?? []).filter((c) => c.playerId !== rollId).map((c) => c.agent),
+    ];
+    return { kind: "assign", player, index: assignIndex, pick: mine, taken };
   })();
 
   // 1. A named person who is saved brings their bans, and fills the first unnamed slot like a pick from the old Saved list did.
@@ -126,35 +140,41 @@ export function TeamCards({
     closeCardWindow();
   };
 
-  // What a tap on this card does, or null for a card that is plain.
-  const action = (card: CardView) => {
-    if (card.state === "empty") return { label: "Add a player or a random teammate", onClick: () => openCardWindow({ kind: "add" }) };
+  // The tappable parts of a card. The card itself opens the agent window, and Configure and the bar are their own buttons.
+  const zones = (card: CardView): CardZones => {
+    if (card.state === "empty") {
+      return { main: { label: "Add a player or a random teammate", onClick: () => openCardWindow({ kind: "add" }) } };
+    }
     if (card.teammateId !== undefined) {
       const id = card.teammateId;
-      return { label: "Change this random teammate's agent", onClick: () => openCardWindow({ kind: "teammate", id }) };
+      return {
+        main: { label: "Change this random teammate's agent", onClick: () => openCardWindow({ kind: "teammate", id }) },
+        bar: { kind: "remove", text: "Remove", label: "Remove this random teammate", onClick: () => removeTeammate(id) },
+      };
     }
     const player = players.find((p) => p.id === card.playerId);
-    if (!player || card.rollId === undefined) return null;
+    if (!player || card.rollId === undefined) return {};
     const rollId = card.rollId;
-    if (card.state === "rolled") {
-      return editable
-        ? { label: "Lock this pick through the next Roll", pressed: kept.includes(rollId), onClick: () => onToggleKept(rollId) }
-        : null;
-    }
-    // A friend's name and bans come from their own device, so a waiting friend's card does nothing.
-    if (player.member) return null;
-    return { label: "Configure this player", onClick: () => setConfigureFor(player.id) };
-  };
-
-  // The three-dots button opens Configure at any time, including after a roll when a tap on the card locks.
-  const menu = (card: CardView) => {
-    const player = players.find((p) => p.id === card.playerId);
-    if (!player || card.name === undefined) return null;
-    return (
-      <button type="button" className="icon-btn" aria-label={`Configure ${card.name}`} onClick={() => setConfigureFor(player.id)}>
-        <KebabIcon />
-      </button>
-    );
+    const name = card.name ?? "this player";
+    const hasAgent = card.state === "rolled";
+    // After Lock in every pick reads as locked, so the bar shows Locked, greyed out until New.
+    const on = locked ? hasAgent : kept.includes(rollId);
+    return {
+      config: { label: `Configure ${name}`, onClick: () => setConfigureFor(player.id) },
+      main: {
+        label: hasAgent ? `Assign an agent to ${name}, now ${card.agent}` : `Assign an agent to ${name}`,
+        onClick: () => setAssignFor(player.id),
+        disabled: locked,
+      },
+      bar: {
+        kind: "lock",
+        text: on ? "Locked" : "Lock",
+        on,
+        label: on ? `Unlock ${name}'s pick` : `Lock ${name}'s pick`,
+        onClick: () => onToggleKept(rollId),
+        disabled: !hasAgent || locked,
+      },
+    };
   };
 
   const configureIndex = players.findIndex((p) => p.id === configureFor);
@@ -194,29 +214,18 @@ export function TeamCards({
       )}
 
       <div aria-live="polite">
-        <CardRow cards={cards} kept={kept} action={action} menu={menu} />
+        <CardRow cards={cards} kept={kept} zones={zones} />
 
-        {/* Note: what Roll will do while picks are locked, otherwise whether the comp has reached history */}
-        {editable && kept.length > 0 ? (
-          <p className="lock-note">
-            {allKept ? "All locked. Tap one to change." : `${kept.length} locked. Roll changes the rest.`}{" "}
-            <button type="button" className="note-link" onClick={onClearKept}>
-              Clear
-            </button>
-          </p>
-        ) : comp ? (
-          <p className="lock-note" data-locked={locked}>
-            {locked ? "Locked in. Saved to history." : "Not locked in yet. Not saved to history."}
-          </p>
-        ) : (
-          <p className="lock-note">Press Roll to give everyone an agent for the next game.</p>
-        )}
+        {/* Note: whether the comp has reached history. The space is always kept, so the page below never jumps. */}
+        <p className="lock-note" data-locked={locked}>
+          {everyoneHasAgent ? (locked ? "Locked in. Saved to history." : "Not locked in yet. Not saved to history.") : "\u00a0"}
+        </p>
       </div>
 
       {/* Empty card or random teammate: the same kind of window as Configure */}
       {target && (
         <CardDialog
-          key={`${target.kind}-${target.kind === "add" ? "" : target.teammate.id}`}
+          key={cardWindow ? `${cardWindow.kind}-${cardWindow.kind === "add" ? "" : cardWindow.id}` : ""}
           target={target}
           players={players}
           teammates={teammates}
@@ -224,9 +233,31 @@ export function TeamCards({
           onAddPlayer={addPlayer}
           onAddTeammate={addRandomTeammate}
           onSetAgent={setAgent}
+          onAssign={() => {}}
           onRemoveTeammate={removeTeammate}
           onForget={onForget}
           onClose={closeCardWindow}
+        />
+      )}
+
+      {/* Assign an agent to a player: the same kind of window. A player who is removed closes it. */}
+      {assignTarget && (
+        <CardDialog
+          key={`assign-${assignFor}`}
+          target={assignTarget}
+          players={players}
+          teammates={teammates}
+          roster={roster}
+          onAddPlayer={addPlayer}
+          onAddTeammate={addRandomTeammate}
+          onSetAgent={setAgent}
+          onAssign={(agent) => {
+            if (assignTarget.kind === "assign") onAssign(playerKey(assignTarget.player), agent);
+            setAssignFor(null);
+          }}
+          onRemoveTeammate={removeTeammate}
+          onForget={onForget}
+          onClose={() => setAssignFor(null)}
         />
       )}
 

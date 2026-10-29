@@ -14,7 +14,7 @@ interface Props {
 }
 
 /**
- * The window Configure and the Empty-card window share (D-new2): a header with Done, a body that
+ * The window Configure and the Empty-card window share (D33): a header with Done, a body that
  * scrolls, and an optional bar at the bottom.
  *
  * Built on the browser's own modal <dialog>, so Escape, the page behind going inert and focus returning

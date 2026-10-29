@@ -4,6 +4,7 @@ import { Disclaimer } from "./components/Disclaimer";
 import { EntryPage } from "./components/EntryPage";
 import { HomeButton } from "./components/HomeButton";
 import { MemberView } from "./components/MemberView";
+import { RollBar } from "./components/RollBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StopPartyDialog } from "./components/StopPartyDialog";
 import { TeamCards } from "./components/TeamCards";
@@ -12,6 +13,7 @@ import type { ToastMessage } from "./components/Toast";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useHostParty, useMemberParty } from "./hooks/useParty";
 import { useWakeLock } from "./hooks/useWakeLock";
+import { assignPick } from "./lib/assign";
 import { createLocalHistoryStore, recordRoll } from "./lib/history";
 import { fitMinimums, totalMinimums } from "./lib/minimums";
 import { parsePlayers, parseRoster, parseSettings, parseTeammates } from "./lib/parse";
@@ -91,7 +93,7 @@ export default function App() {
   // History filed under old player slots can't be tied to anyone, so it is dropped on load (D8).
   const [history, setHistory] = useState(() => keepNamedHistory(historyStore.load()));
   const [rolled, setRolled] = useState<RolledComp | null>(null);
-  // Players whose picks are locked, so Roll leaves them alone (D27). Kept across rerolls until Lock in or Clear.
+  // Players whose picks are locked, so Roll leaves them alone (D27). Kept across rerolls until Lock in or New.
   const [kept, setKept] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   // Counts every press of Roll, successful or not, so the page can scroll to what it produced.
@@ -263,11 +265,37 @@ export default function App() {
     setKept([]);
   };
 
+  // Gives a player an agent by hand and locks it, so Roll leaves it alone (D36). It works before the first
+  // roll too: the comp then holds only the assigned picks, and Roll fills in the rest. The player's old
+  // pick is replaced, and the role counts toward the minimums like any locked pick.
+  const assignAgent = (rollId: string, agent: string) => {
+    const { players, rolled, kept } = live.current;
+    if (rolled?.locked) return;
+    const rollPlayers = toRollPlayers(players);
+    const comp = assignPick(
+      rolled?.comp ?? [],
+      rollPlayers.map((p) => p.id),
+      rollId,
+      agent,
+    );
+    if (!comp) return;
+    const nextRolled = { comp, players: rollPlayers, id: rolled?.id ?? 0, locked: false };
+    live.current.rolled = nextRolled;
+    setRolled(nextRolled);
+    if (!kept.includes(rollId)) {
+      live.current.kept = [...kept, rollId];
+      setKept(live.current.kept);
+    }
+    setError(null);
+  };
+
   // Saves the shown comp to history, once. Only named players who are still on the team count, since an
   // unnamed slot has no one to remember (D10) and someone removed after the roll shouldn't come back.
   const lockIn = () => {
     const { players, history, rolled } = live.current;
     if (!rolled || rolled.locked) return;
+    // A comp that holds only the assigned picks isn't a game yet: everyone needs an agent first.
+    if (!toRollPlayers(players).every((p) => rolled.comp.some((c) => c.playerId === p.id))) return;
     const onTeam = new Set(players.map(playerKey));
     const picks = rolled.comp.filter((pick) => isNamedKey(pick.playerId) && onTeam.has(pick.playerId));
     const nextHistory = recordRoll(history, picks);
@@ -279,6 +307,17 @@ export default function App() {
     historyStore.save(nextHistory);
     // The next game starts with nobody locked.
     clearKept();
+  };
+
+  // After a game is locked in, New starts the next one: the cards go back to waiting, locks and any
+  // error are dropped, and the random teammates are removed, since they belonged to that game (D35).
+  // Players stay, and the locked-in roll stays in history. Friends follow, as they see the host's team.
+  const newGame = () => {
+    live.current.rolled = null;
+    setRolled(null);
+    clearKept();
+    setError(null);
+    commitTeammates([]);
   };
 
   const clearHistory = () => {
@@ -509,6 +548,22 @@ export default function App() {
   const rollPlayerIds = toRollPlayers(players).map((p) => p.id);
   const keptShown = rolled && !rolled.locked ? kept.filter((id) => rollPlayerIds.includes(id)) : [];
   const allKept = keptShown.length > 0 && rollPlayerIds.every((id) => keptShown.includes(id));
+  // Whether every player has an agent, by roll or by hand. Lock in waits for this.
+  const everyoneHasAgent = rolled !== null && rollPlayerIds.every((id) => rolled.comp.some((c) => c.playerId === id));
+
+  // The same Roll and Lock in, drawn where CSS wants them (see RollBar).
+  const rollBar = (className: string) => (
+    <RollBar
+      className={className}
+      rolled={rolled !== null}
+      locked={rolled?.locked ?? false}
+      everyoneHasAgent={everyoneHasAgent}
+      allKept={allKept}
+      onRoll={roll}
+      onLockIn={lockIn}
+      onNew={newGame}
+    />
+  );
 
   if (memberActive && me) {
     return (
@@ -539,20 +594,13 @@ export default function App() {
 
   return (
     <main className="app">
-      {/* Header: title on the left, Roll and Lock in on the right on wide screens and pinned to the bottom on phones */}
+      {/* Header: the title, with Roll and Lock in beside it on a tablet and pinned to the bottom on phones. A desktop has them in the Rules panel. */}
       <header className="app-head">
         <div>
           <HomeButton label="Home" onClick={goHome} />
           <h1>Team randomiser</h1>
         </div>
-        <div className="roll-bar">
-          <button type="button" className="roll" disabled={allKept} onClick={roll}>
-            Roll
-          </button>
-          <button type="button" className="roll lock" disabled={!rolled || rolled.locked} onClick={lockIn}>
-            {rolled?.locked ? "Locked in" : "Lock in"}
-          </button>
-        </div>
+        {rollBar("roll-bar-head")}
       </header>
 
       {/* Result: the error, then the team's five cards, which are the comp once it is rolled */}
@@ -569,13 +617,12 @@ export default function App() {
           comp={rolled?.comp ?? null}
           locked={rolled?.locked ?? false}
           kept={keptShown}
-          allKept={allKept}
           onPlayersChange={commitPlayers}
           onTeammatesChange={commitTeammates}
           onRemove={removePlayer}
           onForget={forget}
           onToggleKept={toggleKept}
-          onClearKept={clearKept}
+          onAssign={assignAgent}
           party={{
             code: host.code,
             status: host.status,
@@ -586,7 +633,12 @@ export default function App() {
       </div>
 
       <div className="columns">
-        <SettingsPanel settings={settings} playerCount={teamSize(players, teammates)} onChange={setSettings} />
+        <SettingsPanel
+          settings={settings}
+          playerCount={teamSize(players, teammates)}
+          onChange={setSettings}
+          aside={rollBar("roll-bar-rules")}
+        />
       </div>
       <HistoryView players={toRollPlayers(players)} history={history} onClear={clearHistory} />
 
