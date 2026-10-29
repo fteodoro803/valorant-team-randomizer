@@ -22,13 +22,14 @@ export const slotsForPlayers = (teammates: Teammate[], max: number = MAX_PLAYERS
 export const teamSize = (players: Player[], teammates: Teammate[]): number =>
   players.length + takenPicks(teammates).length;
 
-/** The teammates with one more blank one, or null when the team's five slots are full. */
+/** The teammates with one more, who has this agent, or null when the team's five slots are full. */
 export function addTeammate(
   players: Player[],
   teammates: Teammate[],
   newId: string,
+  agent: string | null = null,
   max: number = MAX_PLAYERS,
 ): Teammate[] | null {
   if (players.length + teammates.length >= max) return null;
-  return [...teammates, { id: newId, agent: null }];
+  return [...teammates, { id: newId, agent }];
 }

@@ -94,7 +94,7 @@ export type ToMember =
   | { type: "pong" }
   | { type: "removed" }
   | { type: "refused"; reason: string }
-  | { type: "snapshot"; team: TeamMember[]; rolled: SharedRoll | null; error: string | null };
+  | { type: "snapshot"; team: TeamMember[]; teammates: string[]; rolled: SharedRoll | null; error: string | null };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -176,10 +176,16 @@ export function parseToMember(raw: unknown): ToMember | null {
     if (!isRecord(m) || typeof m.name !== "string" || typeof m.online !== "boolean") return null;
     team.push({ name: cleanName(m.name), online: m.online });
   }
+  // A host from before random teammates were shared sends none, which reads as no teammates.
+  if (raw.teammates !== undefined && !Array.isArray(raw.teammates)) return null;
+  // Unknown agents are dropped rather than refused, like bans, so a newer or older agent list still works.
+  const teammates = ((raw.teammates ?? []) as unknown[])
+    .filter((a): a is string => typeof a === "string" && agentRoles.has(a))
+    .slice(0, MAX_PLAYERS);
   const rolled = parseSharedRoll(raw.rolled);
   if (rolled === undefined) return null;
   if (raw.error !== null && typeof raw.error !== "string") return null;
-  return { type: "snapshot", team, rolled, error: raw.error === null ? null : raw.error.slice(0, 300) };
+  return { type: "snapshot", team, teammates, rolled, error: raw.error === null ? null : raw.error.slice(0, 300) };
 }
 
 /** The result of someone asking to join: the new team and who they are on it, or why not. */

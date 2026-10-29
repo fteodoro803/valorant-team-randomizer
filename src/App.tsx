@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { CompResult } from "./components/CompResult";
 import { HistoryView } from "./components/HistoryView";
 import { Disclaimer } from "./components/Disclaimer";
 import { EntryPage } from "./components/EntryPage";
 import { HomeButton } from "./components/HomeButton";
 import { MemberView } from "./components/MemberView";
-import { PlayerList } from "./components/PlayerList";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StopPartyDialog } from "./components/StopPartyDialog";
+import { TeamCards } from "./components/TeamCards";
 import { Toast } from "./components/Toast";
 import type { ToastMessage } from "./components/Toast";
 import { usePersistentState } from "./hooks/usePersistentState";
@@ -74,7 +73,7 @@ const defaultSettings: Settings = {
   historyAware: true,
 };
 
-/** A finished roll and the players it was rolled for, so names on the cards don't change if the form is edited. */
+/** A finished roll and the players it was rolled for. The cards match players to it by their roll key. */
 interface RolledComp {
   comp: Assignment[];
   players: Player[];
@@ -82,8 +81,6 @@ interface RolledComp {
   id: number;
   /** True once Lock in has saved this comp to history. A new roll starts unlocked. */
   locked: boolean;
-  /** The random teammates' picks the roll worked around, shown greyed after the players' cards. Never saved to history. */
-  others: Assignment[];
 }
 
 export default function App() {
@@ -122,9 +119,12 @@ export default function App() {
   const [wantRejoin, setWantRejoin] = useState(false);
   // The last party joined, kept after leaving so the join form can start filled in.
   const [lastParty, setLastParty] = useState(() => loadLastParty(storage));
-  const [shared, setShared] = useState<{ team: TeamMember[]; rolled: SharedRoll | null; error: string | null } | null>(
-    null,
-  );
+  const [shared, setShared] = useState<{
+    team: TeamMember[];
+    teammates: string[];
+    rolled: SharedRoll | null;
+    error: string | null;
+  } | null>(null);
 
   // The newest team, roster, history, settings and roll, kept current as soon as a handler changes them.
   // Messages from party members arrive outside React's renders, so reading state from the render
@@ -161,7 +161,8 @@ export default function App() {
 
   // The member's end of a party.
   const member = useMemberParty({
-    onMessage: (snapshot) => setShared({ team: snapshot.team, rolled: snapshot.rolled, error: snapshot.error }),
+    onMessage: (snapshot) =>
+      setShared({ team: snapshot.team, teammates: snapshot.teammates, rolled: snapshot.rolled, error: snapshot.error }),
     // The host took this member off the team, so the device must not rejoin by itself.
     onRemoved: () => {
       clearSession(storage);
@@ -227,7 +228,7 @@ export default function App() {
         keptNow.length > 0 && rolled ? { current: rolled.comp, keptIds: keptNow } : undefined,
         others,
       );
-      const nextRolled = { comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1, locked: false, others };
+      const nextRolled = { comp, players: rollPlayers, id: (rolled?.id ?? 0) + 1, locked: false };
       live.current.rolled = nextRolled;
       setRolled(nextRolled);
       // A lock whose pick was dropped (it clashed with a random teammate's agent) is gone with it.
@@ -358,6 +359,7 @@ export default function App() {
     host.broadcast({
       type: "snapshot",
       team: teamForMembers(players),
+      teammates: takenPicks(teammates).map((t) => t.agent),
       rolled: rolled && {
         comp: rolled.comp,
         players: rolled.players.map(({ id, name }) => ({ id, name })),
@@ -368,7 +370,7 @@ export default function App() {
     });
     // `host` changes every render, so listing it would resend on every render instead of on every change.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [host.status, players, rolled, error]);
+  }, [host.status, players, teammates, rolled, error]);
 
   const stopParty = () => {
     host.stop();
@@ -553,38 +555,27 @@ export default function App() {
         </div>
       </header>
 
-      {/* Result: the error, the comp, or a prompt before the first roll */}
+      {/* Result: the error, then the team's five cards, which are the comp once it is rolled */}
       <div ref={resultRef} className="result">
         {error && (
           <p role="alert" className="error">
             {error}
           </p>
         )}
-        {rolled ? (
-          <CompResult
-            comp={rolled.comp}
-            players={rolled.players}
-            others={rolled.others}
-            locked={rolled.locked}
-            kept={keptShown}
-            allKept={allKept}
-            onToggleKept={toggleKept}
-            onClearKept={clearKept}
-          />
-        ) : (
-          <p className="empty">Press Roll to give everyone an agent for the next game.</p>
-        )}
-      </div>
-
-      <div className="columns">
-        <PlayerList
+        <TeamCards
           players={players}
           teammates={teammates}
           roster={roster}
-          onChange={commitPlayers}
+          comp={rolled?.comp ?? null}
+          locked={rolled?.locked ?? false}
+          kept={keptShown}
+          allKept={allKept}
+          onPlayersChange={commitPlayers}
           onTeammatesChange={commitTeammates}
           onRemove={removePlayer}
           onForget={forget}
+          onToggleKept={toggleKept}
+          onClearKept={clearKept}
           party={{
             code: host.code,
             status: host.status,
@@ -592,6 +583,9 @@ export default function App() {
             onStop: stopParty,
           }}
         />
+      </div>
+
+      <div className="columns">
         <SettingsPanel settings={settings} playerCount={teamSize(players, teammates)} onChange={setSettings} />
       </div>
       <HistoryView players={toRollPlayers(players)} history={history} onClear={clearHistory} />

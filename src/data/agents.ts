@@ -3,6 +3,10 @@ import type { Agent, Role } from "../lib/types";
 const byRole = (role: Role, names: string[]): Agent[] =>
   names.map((name) => ({ name, role }));
 
+/** The agents of one role in alphabetical order, as the tiles list them. The role groups keep the game's order in `AGENTS`. */
+export const agentsInRole = (role: Role): Agent[] =>
+  AGENTS.filter((a) => a.role === role).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+
 /** An agent's file name without the extension: "KAY/O" becomes "kayo". */
 export const agentSlug = (name: string): string => name.toLowerCase().replace(/[^a-z]/g, "");
 

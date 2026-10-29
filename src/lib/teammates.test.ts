@@ -33,4 +33,8 @@ describe("team slots", () => {
     expect(addTeammate(players, [teammate("t1", null)], "t2")).toHaveLength(2);
     expect(addTeammate(players, [teammate("t1", null), teammate("t2", null)], "t3")).toBeNull();
   });
+
+  it("adds a teammate who already has their agent", () => {
+    expect(addTeammate([player("a")], [], "t1", "Sage")).toEqual([teammate("t1", "Sage")]);
+  });
 });
