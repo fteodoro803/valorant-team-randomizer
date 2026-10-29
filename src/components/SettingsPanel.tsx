@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { canRaiseMinimums } from "../lib/minimums";
 import type { Settings } from "../lib/types";
 import { ROLES } from "../lib/types";
@@ -8,6 +9,8 @@ interface Props {
   /** How many players are on the team, which caps how many can be required. */
   playerCount: number;
   onChange: (settings: Settings) => void;
+  /** Shown in the panel's right half on a desktop, centred there. The page puts Roll and Lock in here. */
+  aside?: ReactNode;
 }
 
 /**
@@ -16,8 +19,10 @@ interface Props {
  * A role's switch is on when its minimum is above 0. Switching it on starts
  * at 1, and the − and + buttons change it from there. The minimums can never
  * add up to more than the team has players, so + stops once they do.
+ *
+ * On a desktop the panel is two halves, the rules on the left and `aside` centred in the right half (D38).
  */
-export function SettingsPanel({ settings, playerCount, onChange }: Props) {
+export function SettingsPanel({ settings, playerCount, onChange, aside }: Props) {
   const canAdd = canRaiseMinimums(settings.minPerRole, playerCount);
   const fullMessage = `Every player already has a required role (${playerCount} on the team).`;
 
@@ -25,7 +30,8 @@ export function SettingsPanel({ settings, playerCount, onChange }: Props) {
     onChange({ ...settings, minPerRole: { ...settings.minPerRole, [role]: min } });
 
   return (
-    <section className="panel">
+    <section className="panel rules-panel">
+      <div className="rules-main">
       <h2 className="section-label">Rules</h2>
       <p className="panel-hint">Minimum per role</p>
 
@@ -84,6 +90,8 @@ export function SettingsPanel({ settings, playerCount, onChange }: Props) {
         />
         <span>Avoid recent roles</span>
       </label>
+      </div>
+      {aside && <div className="rules-aside">{aside}</div>}
     </section>
   );
 }

@@ -89,6 +89,7 @@ describe("parseToMember", () => {
   const snapshot = {
     type: "snapshot",
     team: [{ name: "Sam", online: true }],
+    teammates: ["Sage"],
     rolled: {
       comp: [{ playerId: "name:sam", agent: "Jett", role: "duelist" }],
       players: [{ id: "name:sam", name: "Sam" }],
@@ -104,6 +105,16 @@ describe("parseToMember", () => {
 
   it("reads a snapshot before any roll, and one with an error", () => {
     expect(parseToMember({ ...snapshot, rolled: null, error: "No valid comp" })).toMatchObject({ rolled: null, error: "No valid comp" });
+  });
+
+  it("reads a snapshot from a host that sends no random teammates as having none", () => {
+    const { teammates: _teammates, ...older } = snapshot;
+    expect(parseToMember(older)).toMatchObject({ teammates: [] });
+  });
+
+  it("drops a random teammate's agent that doesn't exist, and rejects a teammates list that isn't a list", () => {
+    expect(parseToMember({ ...snapshot, teammates: ["Sage", "Nobody", 4] })).toMatchObject({ teammates: ["Sage"] });
+    expect(parseToMember({ ...snapshot, teammates: "Sage" })).toBeNull();
   });
 
   it("reads a pong and a removal", () => {

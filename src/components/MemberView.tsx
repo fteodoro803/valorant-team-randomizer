@@ -1,9 +1,9 @@
 import type { JoinStep, MemberStatus } from "../hooks/useParty";
+import { buildSharedCards } from "../lib/cards";
 import type { SharedRoll, TeamMember } from "../lib/party";
-import { keyForName } from "../lib/roster";
 import type { Player } from "../lib/types";
 import { BanPicker } from "./BanPicker";
-import { CompResult, TeamStrip } from "./CompResult";
+import { CardRow } from "./CardRow";
 import { Disclaimer } from "./Disclaimer";
 import { HomeButton } from "./HomeButton";
 
@@ -15,30 +15,23 @@ interface Props {
   status: MemberStatus;
   /** Where a join is up to, shown while the member waits to be let in. */
   step: JoinStep;
-  /** What the host last sent: who is on the team, the latest roll, and why a roll failed. */
-  shared: { team: TeamMember[]; rolled: SharedRoll | null; error: string | null } | null;
+  /** What the host last sent: who is on the team, the agents of its random teammates, the latest roll, and why a roll failed. */
+  shared: { team: TeamMember[]; teammates: string[]; rolled: SharedRoll | null; error: string | null } | null;
   onChange: (patch: Partial<Player>) => void;
   onLeave: () => void;
 }
 
 /**
- * The page a party member sees: the team as a strip of portraits, then their own bans.
+ * The page a party member sees: the team's five cards, then their own bans.
  *
  * The member never holds the team or rolls anything. They send their bans to the host, and show whatever the host sends back, so every phone matches.
- * The strip is the team list too: before a roll it shows empty portraits with names, after
- * a roll the agents, and the online dot sits on each portrait, so there is no Team panel.
+ * The cards are the same five the host sees (D32), without taps: before a roll each person is a
+ * waiting card with their name, after a roll the agents, and the online dot sits on each portrait,
+ * so there is no Team panel. The host's random teammates and the empty cards show too.
  */
 export function MemberView({ me, code, status, step, shared, onChange, onLeave }: Props) {
   const joined = status === "joined" && shared !== null;
-  const team = shared?.team ?? [];
-
-  // The cards only need names, so the host's roll is turned back into players without bans.
-  const players: Player[] =
-    shared?.rolled?.players.map((p) => ({ id: p.id, name: p.name, excludedAgents: [], bannedRoles: [] })) ?? [];
-  const onlineOf = (playerId: string) => {
-    const name = players.find((p) => p.id === playerId)?.name ?? "";
-    return team.find((m) => keyForName(m.name) === keyForName(name))?.online;
-  };
+  const cards = buildSharedCards(shared?.team ?? [], shared?.rolled ?? null, shared?.teammates ?? []);
 
   return (
     <main className="app">
@@ -58,16 +51,16 @@ export function MemberView({ me, code, status, step, shared, onChange, onLeave }
             {shared.error}
           </p>
         )}
-        {shared?.rolled ? (
-          <CompResult
-            comp={shared.rolled.comp}
-            players={players}
-            locked={shared.rolled.locked}
-            you={me.name}
-            onlineOf={onlineOf}
-          />
-        ) : joined ? (
-          <TeamStrip team={team} you={me.name} />
+        {joined ? (
+          <section aria-live="polite">
+            <h2 className="section-label">{shared?.rolled ? "Your comp" : "Waiting for the roll"}</h2>
+            <CardRow cards={cards} you={me.name} />
+            {shared?.rolled && (
+              <p className="lock-note" data-locked={shared.rolled.locked}>
+                {shared.rolled.locked ? "Locked in. Saved to history." : "Not locked in yet. Not saved to history."}
+              </p>
+            )}
+          </section>
         ) : (
           <p className="empty">{step === "asking" ? "Asking the host to let you in…" : "Connecting to the party…"}</p>
         )}

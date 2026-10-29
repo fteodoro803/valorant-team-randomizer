@@ -252,6 +252,19 @@ input:not([type]) {
   gap: 10px;
 }
 
+/* The copy beside the Rules panel only shows on a desktop (see RollBar), and the Rules panel's right half with it. */
+.roll-bar-rules,
+.rules-aside {
+  display: none;
+}
+
+.rules-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
 .roll {
   flex: 1;
   height: 56px;
@@ -271,7 +284,7 @@ input:not([type]) {
   background: var(--accent-hover);
 }
 
-/* Lock in sits beside Roll but stays quieter, since Roll is the big action and Lock in only confirms. */
+/* Lock in (which becomes Clear once locked in) sits beside Roll but stays quieter, since Roll is the big action. */
 .roll.lock {
   flex: 0 0 38%;
   background: transparent;
@@ -379,54 +392,96 @@ input:not([type]) {
 
 /* Comp */
 
-/* Flex rather than a 5-column grid, so a team of fewer than five sits in the middle of the strip instead of hugging the left. */
+/*
+ * Phone: the team is a list of rows (D37), one per card, because a card has three parts to tap
+ * and a 67px portrait has no room to show which is which. From tablet width they are cards in a row.
+ * Each row is the card (portrait and text, which opens the agent window), a cog for Configure and a
+ * square for the lock (D38).
+ */
 .cards {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
 
 /*
- * Phone: a strip of portraits. Five across, each a role-colour square with the agent and the
- * player under it, so the comp takes one short band instead of more than a screen (D23).
- * The role is left to the colour and the agent's name, and stays in the text for screen readers.
+ * The list item is the row's item and sizes the card. Every card is the same size, because the
+ * text always has three lines (a waiting or empty card carries an invisible one) and every card has a bar.
  */
-/* The list item only holds the card, so the cards are still the grid's (and the wide rows') items. */
 .card-item {
-  display: contents;
+  position: relative;
+  display: flex;
+  min-width: 0;
 }
 
 .card {
+  position: relative;
   display: flex;
-  flex: 0 0 calc((100% - 4 * 8px) / 5);
-  flex-direction: column;
+  flex: 1 1 auto;
   align-items: center;
-  gap: 2px;
+  gap: 8px;
   min-width: 0;
-  text-align: center;
+  height: 64px;
+  padding: 0 10px;
+  background: var(--role-tint);
+  border-radius: 14px;
+  text-align: left;
 }
 
 /*
- * On the host's page a card is a button: drop the button look so it draws exactly like the plain card.
- * `:where` keeps this at zero specificity, so the card's own rules (like the tint on wide screens) still win.
+ * On the host's page the card, the Configure part and the bar are real buttons (D36). `:where` keeps
+ * the reset at zero specificity, so each part's own look still wins.
  */
-:where(button.card) {
+:where(button.zone) {
   padding: 0;
-  border: 0;
   background: none;
+  border: 0;
   color: inherit;
   font: inherit;
+  text-align: inherit;
+  cursor: pointer;
 }
 
+:where(button.zone):disabled {
+  cursor: default;
+}
+
+.zone:focus-visible,
+.card-bar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.card-main,
+.card-art,
+.card-config,
+.card-bar {
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, filter 0.15s;
+}
+
+/* The card itself: the portrait and the text. Tapping it opens the agent window. */
+.card-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-left: -4px;
+  padding: 0 8px 0 4px;
+  align-self: stretch;
+  border-radius: 10px;
+}
+
+/* Portrait: the agent on a role-colour square. */
 .card-art {
   position: relative;
   display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;
+  flex: none;
+  width: 44px;
+  height: 44px;
   background: var(--role);
   border-radius: 10px;
 }
@@ -440,7 +495,7 @@ input:not([type]) {
   border-radius: 10px;
 }
 
-/* A person who has not been given an agent yet: an empty square with their initial. */
+/* A person who has not been given an agent yet: an empty square with a mark. */
 .card.slot {
   --role: var(--panel-raised);
   --role-tint: var(--panel);
@@ -455,42 +510,7 @@ input:not([type]) {
   color: var(--muted);
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.6rem;
-}
-
-/* On the strip a waiting person's name sits under the portrait like an agent's name does, but keeps the case they typed. */
-.card.slot .card-agent {
-  color: var(--text-soft);
-  text-transform: none;
-  overflow-wrap: anywhere;
-}
-
-/* The member's own portrait is outlined, so they find themselves at a glance. */
-.card[data-you="true"] .card-art {
-  outline: 2px solid var(--text);
-  outline-offset: 2px;
-}
-
-/* A player whose pick is locked through the next Roll (D27): a ring round the portrait and a padlock on its corner. */
-.card[data-kept="true"] .card-art {
-  outline: 3px solid var(--text);
-  outline-offset: 2px;
-}
-
-.card-lock {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--text);
-  color: var(--bg);
-  box-shadow: 0 0 0 2px var(--bg);
+  font-size: 1.3rem;
 }
 
 /* The online dot sits on the portrait's top right corner, ringed in the page colour so it reads over any art. */
@@ -499,8 +519,8 @@ input:not([type]) {
   top: -4px;
   right: -4px;
   z-index: 1;
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   box-shadow: 0 0 0 2px var(--bg);
 }
 
@@ -508,47 +528,222 @@ input:not([type]) {
   background: var(--bg);
 }
 
+/* Text: role, agent, player. */
 .card-body {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  align-items: center;
-  width: 100%;
+  align-items: stretch;
+  justify-content: center;
   min-width: 0;
 }
 
-/* Visually hidden on the strip, back in view in the wide rows below. */
 .card-role {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.card-agent {
-  max-width: 100%;
-  margin-top: 4px;
   overflow: hidden;
   color: var(--role-text);
-  font-family: var(--font-display);
-  font-weight: 700;
-  /* Small enough that Brimstone, the longest name, fits a 360px phone without an ellipsis. */
-  font-size: 0.85rem;
-  line-height: 1.1;
-  letter-spacing: 0.02em;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.card-player {
-  max-width: 100%;
+.card-agent {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 0.72rem;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* A waiting person's name keeps the case they typed. */
+.card.slot .card-agent {
+  color: var(--text-soft);
+  text-transform: none;
+}
+
+.card-player {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 0.75rem;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * Configure. On a phone row it is a cog in a square beside the lock, and a plain card (a random
+ * teammate's, an Empty one, a friend's own page) has none. From tablet width it becomes the strip across
+ * the top of the card, with the player's name.
+ */
+.card-config {
+  display: none;
+  order: 2;
+}
+
+button.card-config {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--text);
+}
+
+.card-config-name,
+.card-config .head-dot {
+  display: none;
+}
+
+/*
+ * The bar locks or unlocks a player's pick, or removes a random teammate. A card with nothing to do
+ * there keeps a blank bar, so every card is the same size. On a phone row it is a square with an icon,
+ * and the word shows from tablet width.
+ */
+.card-bar {
+  display: flex;
+  flex: none;
+  order: 3;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+button.card-bar {
+  cursor: pointer;
+}
+
+button.card-bar:disabled {
+  cursor: default;
+}
+
+.card-bar[data-kind="none"] {
+  background: none;
+  border-color: transparent;
+}
+
+.card-bar[data-on="true"] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.card-bar[data-kind="remove"] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/*
+ * Each tappable part has its own hover colour (D38): Configure a blue wash, the card a wash in its own
+ * role colour with a brighter portrait, Lock a light wash that previews Locked, Remove a red fill. Only for
+ * a pointer that can hover, so a touch screen never leaves one stuck on.
+ */
+@media (hover: hover) {
+  button.card-config:hover:not(:disabled) {
+    background: rgba(90, 176, 255, 0.25);
+    border-color: #5ab0ff;
+  }
+
+  button.card-main:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--role) 22%, transparent);
+  }
+
+  button.card-main:hover:not(:disabled) .card-art {
+    filter: brightness(1.12);
+  }
+
+  .card[data-state="empty"] button.card-main:hover:not(:disabled) {
+    background: rgba(236, 232, 225, 0.08);
+  }
+
+  button.card-bar[data-kind="lock"]:hover:not(:disabled):not([data-on="true"]) {
+    background: rgba(236, 232, 225, 0.3);
+  }
+
+  button.card-bar[data-kind="lock"][data-on="true"]:hover:not(:disabled) {
+    background: var(--text-soft);
+  }
+
+  button.card-bar[data-kind="remove"]:hover:not(:disabled) {
+    background: #a8323c;
+    border-color: #a8323c;
+    color: #fff;
+  }
+}
+
+/*
+ * Rings go round the whole card, drawn as an overlay border rather than an outline, because the
+ * portrait is positioned and would paint over an outline's right edge. Your own card gets 2px and a
+ * locked pick 3px.
+ */
+.card[data-you="true"]::after,
+.card[data-kept="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 2px solid var(--text);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.card[data-kept="true"]::after {
+  border-width: 3px;
+}
+
+/* An empty card: a dashed card with a plus, asking to be filled (D32). */
+.card[data-state="empty"] {
+  --role: transparent;
+  --role-tint: transparent;
+  outline: 2px dashed var(--line-strong);
+  outline-offset: -2px;
+}
+
+.card[data-state="empty"] .card-initial {
+  color: var(--text-soft);
+  font-size: 1.9rem;
+}
+
+.card[data-state="empty"] .card-agent {
+  color: var(--text-soft);
+}
+
+/* A random teammate: dimmed through its parts, because the reveal animation owns the card's own opacity, and dashed. */
+.card[data-outside="true"] {
+  outline: 2px dashed var(--muted);
+  outline-offset: -2px;
+}
+
+.card[data-outside="true"] .card-art,
+.card[data-outside="true"] .card-body {
+  opacity: 0.55;
+}
+
+/* Words that only one layout shows: a waiting person's name under the portrait on a phone, "No agent" on a wide card. */
+.phone-only {
+  display: inline;
 }
 
 /* The five cards appear together, and not at all for anyone who asked for less motion. */
@@ -662,147 +857,127 @@ input:not([type]) {
   display: none;
 }
 
-/* The three-dots menu: a bottom sheet on a phone, a popover under the button on wide screens. */
+/*
+ * Configure (D33): everything about one player in one window. A bottom sheet on a phone, a
+ * centred card on wide screens. The header and the bar with Remove and Forget stay put while the
+ * name and bans scroll between them, so Done and Remove are always in reach.
+ */
 
-.menu-anchor {
-  position: relative;
-}
-
-.menu-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: rgba(5, 9, 13, 0.7);
-}
-
-.menu {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 41;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 16px max(34px, env(safe-area-inset-bottom));
+.configure-dialog {
+  width: 100%;
+  max-width: none;
+  height: calc(100dvh - 48px);
+  max-height: none;
+  margin: auto 0 0;
+  padding: 0;
   background: var(--panel);
-  border-top: 1px solid var(--line);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-bottom: 0;
   border-radius: 22px 22px 0 0;
 }
 
-.menu-handle {
+.configure-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.configure-dialog::backdrop {
+  background: rgba(5, 9, 13, 0.7);
+}
+
+.sheet-handle {
   align-self: center;
   width: 40px;
   height: 4px;
-  margin-bottom: 10px;
   background: var(--line-strong);
   border-radius: 2px;
 }
 
-.menu-head {
+.configure-head {
   display: flex;
-  align-items: baseline;
+  flex: none;
+  flex-direction: column;
   gap: 10px;
-  padding: 0 4px 8px;
+  padding: 10px 16px 12px;
 }
 
-.menu-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.9rem;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  min-height: 60px;
-  padding: 0 12px;
-  background: transparent;
-  border: 0;
-  border-radius: 12px;
-  text-align: left;
-}
-
-.menu-item:hover:not(:disabled) {
-  background: var(--line);
-}
-
-.menu-item.danger {
-  color: var(--accent-text);
-}
-
-.menu-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-}
-
-.menu-label {
-  font-weight: 600;
-}
-
-.menu-hint {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.menu-item.danger .menu-hint {
-  color: #e0959d;
-}
-
-.menu-count {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-/* Bans dialog: full screen on a phone, a centred card on wide screens. */
-
-.bans-dialog {
-  width: 100%;
-  max-width: none;
-  height: 100dvh;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--text);
-  border: 0;
-}
-
-.bans-dialog::backdrop {
-  background: rgba(5, 9, 13, 0.7);
-}
-
-.bans-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 18px 16px 40px;
-}
-
-/* Stays at the top while the agents scroll under it, so Done is always in reach. */
-.bans-head {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+.configure-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -18px -16px 0;
-  padding: 18px 16px 12px;
-  background: var(--bg);
 }
 
-.bans-head h2 {
+.configure-title h2 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 2rem;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.configure-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 4px 16px 20px;
+  overflow-y: auto;
+}
+
+.configure-name {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.configure-foot {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px max(20px, env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+
+.configure-foot p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.configure-foot .muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.configure-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.configure-actions .ghost,
+.configure-actions .roll {
+  flex: 1;
+  height: 48px;
+  padding: 0 8px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+/* Roll's phone style stretches a button across the row, so Done is kept to its own width beside the title. */
+.configure-title .roll {
+  flex: none;
+  width: auto;
+  height: 44px;
+  padding: 0 24px;
+}
+
+.danger-text {
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 
 .role-chips {
@@ -1174,13 +1349,20 @@ input:not([type]) {
     font-size: 1.65rem;
   }
 
+  /* A fixed width, wide enough for both words, so swapping Lock in for Clear doesn't change the button's size. */
   .roll.lock {
     flex: none;
+    width: 10.5rem;
+    padding: 0;
   }
 
-  /* Tablet width: the phone's row cards, two across, so each has room for a whole portrait and a long name. */
+  .phone-only {
+    display: none;
+  }
+
+  /* Tablet width: cards in a row, two across, so each has room for a whole portrait and a long name. */
   .cards {
-    display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
     gap: 12px;
@@ -1188,26 +1370,96 @@ input:not([type]) {
   }
 
   /* Cards keep their grid width and a short last row is centred, so a team of three does not hug the left edge. */
-  .card {
+  .card-item {
     flex: 0 0 calc((100% - 12px) / 2);
-    flex-direction: row;
-    align-items: stretch;
-    gap: 0;
-    min-width: 0;
-    min-height: 92px;
-    overflow: hidden;
-    background: var(--role-tint);
-    border-radius: var(--radius);
-    text-align: left;
   }
 
-  /* From here the comp is rows again: the portrait on a solid role-colour square on the right, the whole portrait showing. */
+  /*
+   * A fixed height, so a card never changes size: the Configure strip (26px), the card (72px, as tall as
+   * the portrait is wide, so the whole square picture shows) and the bar (30px).
+   */
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    height: 128px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+
+  /* The strip across the top: the player's name, a dot for a friend, and a cog when it is a button. */
+  .card-config,
+  button.card-config {
+    display: flex;
+    flex: none;
+    order: 0;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    height: 26px;
+    padding: 0 10px;
+    background: rgba(15, 25, 35, 0.4);
+    border: 0;
+    border-bottom: 1px solid rgba(236, 232, 225, 0.2);
+    border-radius: 0;
+    color: var(--text);
+    font-size: 0.75rem;
+  }
+
+  .card-config-name {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card[data-state="teammate"] .card-config-name,
+  .card[data-state="empty"] .card-config-name {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .card-config svg {
+    flex: none;
+    margin-left: auto;
+    color: var(--text-soft);
+  }
+
+  .card-config .head-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+  }
+
+  .card-config .status-dot[data-online="false"] {
+    background: transparent;
+    border: 2px solid var(--muted);
+  }
+
+  .card-art .status-dot {
+    display: none;
+  }
+
+  /* The card itself fills the middle: the text on the left and the portrait on a solid role-colour square on the right. */
+  .card-main {
+    order: 1;
+    align-items: stretch;
+    gap: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+
   .card-art {
     order: 2;
-    flex: none;
-    width: 92px;
-    height: 92px;
-    aspect-ratio: auto;
+    width: 72px;
+    height: auto;
     border-radius: 0;
   }
 
@@ -1215,80 +1467,50 @@ input:not([type]) {
     border-radius: 0;
   }
 
-  /*
-   * From here the rings go round the whole card, drawn as an overlay border rather than an outline,
-   * because the portrait is positioned and would paint over an outline's right edge.
-   * Your own card gets 2px, a locked pick 3px, and the padlock sits inside the portrait's top right.
-   */
-  .card[data-you="true"] .card-art,
-  .card[data-kept="true"] .card-art {
-    outline: 0;
-  }
-
-  .card[data-you="true"],
-  .card[data-kept="true"] {
-    position: relative;
-  }
-
-  .card[data-you="true"]::after,
-  .card[data-kept="true"]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    border: 2px solid var(--text);
-    border-radius: inherit;
-    pointer-events: none;
-  }
-
-  .card[data-kept="true"]::after {
-    border-width: 3px;
-  }
-
-  .card-lock {
-    top: 8px;
-    right: 8px;
-  }
-
-  .card-art .status-dot {
-    top: 8px;
-    right: 8px;
-  }
-
   .card-body {
-    flex: 1;
-    align-items: stretch;
-    width: auto;
-    padding: 12px 16px;
+    justify-content: center;
+    padding: 4px 12px;
   }
 
   .card-role {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
-    color: var(--role-text);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 0.7rem;
+    line-height: 1.3;
   }
 
-  /* Pushes the agent and player to the bottom, so the role label sits alone at the top. */
   .card-agent {
-    margin-top: auto;
-    color: var(--text);
-    font-size: 2.1rem;
+    font-size: 1.5rem;
     line-height: 1;
-    letter-spacing: 0.01em;
-    overflow: visible;
-    white-space: normal;
   }
 
   .card-player {
-    color: var(--text-soft);
-    font-size: 0.85rem;
+    display: none;
+  }
+
+  .card-bar {
+    order: 2;
+    width: auto;
+    height: 30px;
+    background: rgba(15, 25, 35, 0.55);
+    border-width: 1px 0 0;
+    border-color: rgba(236, 232, 225, 0.25);
+    border-radius: 0;
+  }
+
+  .card-bar[data-kind="none"] {
+    background: none;
+    border-color: rgba(58, 72, 86, 0.5);
+  }
+
+  .card-bar[data-kind="remove"] {
+    border-color: rgba(236, 232, 225, 0.25);
+  }
+
+  /* On the wide strip a hover is a wash across it rather than a border. */
+  @media (hover: hover) {
+    button.card-config:hover:not(:disabled) {
+      background: rgba(90, 176, 255, 0.3);
+      border-color: rgba(236, 232, 225, 0.2);
+    }
   }
 
   /* Rules never gets narrower than its longest row (a switch, CONTROLLER and the stepper), which a tablet in portrait would otherwise squeeze. */
@@ -1313,66 +1535,39 @@ input:not([type]) {
     font-size: 0.9rem;
   }
 
-  /* The menu becomes a popover under its button, and its sheet-only parts go. */
-  .menu-scrim {
-    background: transparent;
-  }
-
-  .menu {
-    position: absolute;
-    left: auto;
-    right: 0;
-    top: calc(100% + 6px);
-    bottom: auto;
-    width: 280px;
-    gap: 0;
-    padding: 6px;
-    background: var(--panel-raised);
-    border: 1px solid var(--line-strong);
-    border-radius: 14px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-  }
-
-  .menu-handle,
-  .menu-head,
-  .sheet-only {
-    display: none;
-  }
-
   .wide-only {
     display: inline;
   }
 
-  .menu-item {
-    min-height: 52px;
-    padding: 0 10px;
-    border-radius: var(--radius-sm);
-  }
-
-  .menu-label {
-    font-size: 0.95rem;
-  }
-
-  .menu-hint {
-    font-size: 0.75rem;
-  }
-
-  .bans-dialog {
+  /* Configure becomes a centred card. */
+  .configure-dialog {
     width: min(640px, calc(100% - 32px));
     height: auto;
     max-height: min(85vh, 760px);
     margin: auto;
-    border: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
     border-radius: 20px;
   }
 
-  .bans-body {
-    padding: 22px 24px 28px;
+  .sheet-handle {
+    display: none;
   }
 
-  .bans-head {
-    margin: -22px -24px 0;
+  .configure-head {
     padding: 22px 24px 12px;
+  }
+
+  .configure-body {
+    padding: 4px 24px 20px;
+  }
+
+  .configure-foot {
+    padding: 14px 24px 20px;
+  }
+
+  .configure-actions .ghost {
+    flex: 0 1 auto;
+    padding: 0 18px;
   }
 
   .tiles {
@@ -1385,33 +1580,42 @@ input:not([type]) {
  * Below about 980px a column is too narrow for the longest name (Brimstone) next to a portrait.
  */
 @media (min-width: 980px) {
-  .card {
+  .card-item {
     flex-basis: calc((100% - 4 * 12px) / 5);
-    min-height: 0;
   }
 
-  /* The portrait takes the card's height, so a shorter card gets a smaller portrait. */
-  .card-art {
-    width: 72px;
-    height: auto;
+  /* Roll and Lock in leave the title for the Rules panel, where the screen has room: stacked, and centred in its right half (D38). */
+  .roll-bar-head {
+    display: none;
   }
 
-  .card-body {
-    padding: 8px 12px;
+  .rules-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 48px;
   }
 
-  .card-role {
-    font-size: 0.7rem;
-    line-height: 1.3;
+  .rules-aside {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .card-agent {
-    font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+  .roll-bar-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 260px;
   }
 
-  .card-player {
-    font-size: 0.8rem;
-    line-height: 1.3;
+  .roll-bar-rules .roll,
+  .roll-bar-rules .roll.lock {
+    flex: none;
+    width: 100%;
+    height: 56px;
+    padding: 0;
+    font-size: 1.65rem;
   }
 }
 
@@ -1877,80 +2081,31 @@ input:not([type]) {
 
 /* Random teammates: people on the team who aren't using the app. Greyed and dashed so it is plain they aren't ours. */
 
-/* Add player and Add random teammate share one row, each as wide as its words. */
-.add-row {
-  display: flex;
-  gap: 8px;
-}
-
-.add-row .add-player {
-  flex: 1 1 auto;
-  width: auto;
-  min-width: 0;
-  padding: 0 12px;
-  white-space: nowrap;
-}
-
-/* The box looks and fills like a name box, so the remove button lands in the three-dots column. */
-.teammate-box {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  height: 44px;
-  padding: 0 14px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--muted);
-  text-align: left;
-  transition: border-color 0.15s;
-}
-
-.teammate-box:hover {
-  border-color: var(--muted);
-}
-
-/* The small tag that says this isn't one of ours. */
-.teammate-tag {
-  flex: none;
-  padding: 3px 7px;
-  background: var(--panel-raised);
-  border-radius: 6px;
-  color: var(--muted);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.teammate-agent {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-soft);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.teammate-agent[data-empty="true"] {
-  color: var(--muted);
-}
-
-.teammate-icon {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-}
-
-/* The agent picker: a picked tile is outlined in its role's colour, and one another teammate has is greyed out. */
+/* The agent grid: a picked tile is outlined in its role's colour, and one another teammate has is greyed out. */
 .tile[data-picked="true"] {
   background: var(--role-tint);
   border-color: var(--role);
   color: var(--role-text);
+}
+
+/* In the window that gives a player an agent, a banned agent can still be picked, so it is marked rather than greyed out. */
+.tile[data-marked="true"] {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.tile-tag {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 1px 4px;
+  background: #a8323c;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .tile[data-taken="true"] img {
@@ -1958,34 +2113,29 @@ input:not([type]) {
   opacity: 0.3;
 }
 
-.clear-pick {
-  align-self: flex-start;
+/* The Empty-card window (D33): the name box and saved people, then the agents, stacked in the Configure window. */
+.picker-side,
+.picker-agents {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 
-/* On the comp: the card is dimmed through its parts, because the reveal animation owns the card's own opacity. */
-.card[data-outside="true"] .card-art,
-.card[data-outside="true"] .card-body {
-  opacity: 0.55;
+.picker-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.card[data-outside="true"] .card-art {
-  outline: 2px dashed var(--muted);
-  outline-offset: 2px;
+.picker-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
-@media (min-width: 721px) {
-  .card[data-outside="true"] .card-art {
-    outline: 0;
-  }
-
-  .card[data-outside="true"] {
-    outline: 2px dashed var(--muted);
-    outline-offset: -2px;
-  }
+.columns > .panel:only-child {
+  grid-column: 1 / -1;
 }
 
-@media (min-width: 721px) and (hover: hover) and (pointer: fine) {
-  .teammate-box {
-    height: 36px;
-  }
-}
+

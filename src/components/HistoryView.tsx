@@ -51,7 +51,6 @@ export function HistoryView({ players, history, onClear }: Props) {
               );
             })}
           </ul>
-          <p className="panel-hint">Newest on the right, outlined. Up to {HISTORY_LIMIT} per player.</p>
         </>
       )}
     </section>

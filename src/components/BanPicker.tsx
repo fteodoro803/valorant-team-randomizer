@@ -1,4 +1,4 @@
-import { AGENTS, agentIconUrl } from "../data/agents";
+import { agentIconUrl, agentsInRole } from "../data/agents";
 import type { Player, Role } from "../lib/types";
 import { ROLES } from "../lib/types";
 import { BanIcon } from "./icons";
@@ -66,7 +66,7 @@ export function BanPicker({ player, roleHeading, onChange }: Props) {
               {viaRole && " · banned as a role"}
             </legend>
             <div className="tiles">
-              {AGENTS.filter((a) => a.role === role).map((agent) => {
+              {agentsInRole(role).map((agent) => {
                 const banned = player.excludedAgents.includes(agent.name);
                 return (
                   <label key={agent.name} className="tile" data-banned={banned} data-via-role={viaRole}>
