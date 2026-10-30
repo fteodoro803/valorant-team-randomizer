@@ -619,7 +619,7 @@ export default function App() {
               Stop party
             </button>
           ) : (
-            <button type="button" className="ghost" disabled={host.status === "connecting"} onClick={host.start}>
+            <button type="button" className="ghost start-party" disabled={host.status === "connecting"} onClick={host.start}>
               {host.status === "connecting" ? "Starting…" : "Start a party"}
             </button>
           )}
@@ -647,7 +647,6 @@ export default function App() {
           onForget={forget}
           onToggleKept={toggleKept}
           onAssign={assignAgent}
-          hosting={host.status === "open"}
         />
       </div>
 
