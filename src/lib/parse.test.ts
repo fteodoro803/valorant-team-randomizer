@@ -42,14 +42,41 @@ describe("parseRoster", () => {
 });
 
 describe("parseSettings", () => {
+  const good = {
+    historyAware: true,
+    minPerRole: { duelist: 1, initiator: 0, controller: 0, sentinel: 0 },
+    maxPerRole: { duelist: 3, initiator: 5, controller: 5, sentinel: 1 },
+    ruleOn: { duelist: true, initiator: false, controller: false, sentinel: true },
+  };
+
   it("accepts good settings and rejects bad ones", () => {
-    const good = {
-      historyAware: true,
-      minPerRole: { duelist: 1, initiator: 0, controller: 0, sentinel: 0 },
-    };
     expect(parseSettings(good)).toEqual(good);
     expect(parseSettings({ ...good, historyAware: "yes" })).toBeNull();
     expect(parseSettings(null)).toBeNull();
+  });
+
+  it("loads settings saved before maximums existed with no ceiling", () => {
+    const { maxPerRole: _, ruleOn: __, ...old } = good;
+    expect(parseSettings(old)).toEqual({
+      ...good,
+      maxPerRole: { duelist: 5, initiator: 5, controller: 5, sentinel: 5 },
+      ruleOn: { duelist: true, initiator: false, controller: false, sentinel: false },
+    });
+  });
+
+  it("loads settings saved before the switches came back with a role on when its range is narrower", () => {
+    const { ruleOn: _, ...old } = good;
+    expect(parseSettings(old)?.ruleOn).toEqual({ duelist: true, initiator: false, controller: false, sentinel: true });
+  });
+
+  it("rejects a switch that is not true or false", () => {
+    expect(parseSettings({ ...good, ruleOn: { ...good.ruleOn, duelist: "yes" } })).toBeNull();
+  });
+
+  it("rejects a minimum above its maximum, or a maximum above the team limit", () => {
+    expect(parseSettings({ ...good, maxPerRole: { ...good.maxPerRole, duelist: 0 } })).toBeNull();
+    expect(parseSettings({ ...good, maxPerRole: { ...good.maxPerRole, sentinel: 6 } })).toBeNull();
+    expect(parseSettings({ ...good, maxPerRole: { ...good.maxPerRole, sentinel: 1.5 } })).toBeNull();
   });
 });
 

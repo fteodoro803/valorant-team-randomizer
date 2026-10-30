@@ -15,7 +15,7 @@ import { useHostParty, useMemberParty } from "./hooks/useParty";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { assignPick } from "./lib/assign";
 import { createLocalHistoryStore, recordRoll } from "./lib/history";
-import { fitMinimums, totalMinimums } from "./lib/minimums";
+import { fitMaximums, totalMaximums } from "./lib/minimums";
 import { parsePlayers, parseRoster, parseSettings, parseTeammates } from "./lib/parse";
 import {
   admitMember,
@@ -53,6 +53,7 @@ import {
 import { browserStorage } from "./lib/storage";
 import { slotsForPlayers, takenPicks, teamSize } from "./lib/teammates";
 import type { Assignment, Player, Roster, Settings, Teammate } from "./lib/types";
+import { MAX_PLAYERS } from "./lib/types";
 
 /** How many times a device that lost its party tries to get back in, and how long it waits between tries. */
 const MAX_REJOIN_TRIES = 3;
@@ -72,6 +73,8 @@ const defaultTeammates: Teammate[] = [];
 
 const defaultSettings: Settings = {
   minPerRole: { duelist: 0, initiator: 0, controller: 0, sentinel: 0 },
+  maxPerRole: { duelist: MAX_PLAYERS, initiator: MAX_PLAYERS, controller: MAX_PLAYERS, sentinel: MAX_PLAYERS },
+  ruleOn: { duelist: false, initiator: false, controller: false, sentinel: false },
   historyAware: true,
 };
 
@@ -135,19 +138,26 @@ export default function App() {
   useEffect(() => {
     live.current = { players, teammates, roster, history, settings, rolled, kept };
   });
+  // A bigger team can leave the role maximums adding up to less than the team, so the lowest ones go up
+  // to fit. Minimums are left alone however the team changes: a roll fills as many as it can (D39).
+  const raiseMaximums = (players: Player[], teammates: Teammate[]) => {
+    const { settings } = live.current;
+    const fitted = fitMaximums(settings, teamSize(players, teammates));
+    if (totalMaximums(fitted) !== totalMaximums(settings.maxPerRole)) {
+      const next = { ...settings, maxPerRole: fitted };
+      live.current.settings = next;
+      setSettings(next);
+    }
+  };
   const commitPlayers = (next: Player[]) => {
     live.current.players = next;
     setPlayers(next);
+    raiseMaximums(next, live.current.teammates);
   };
-  // Random teammates change the size the role minimums can cover, so the minimums are lowered to fit.
   const commitTeammates = (next: Teammate[]) => {
     live.current.teammates = next;
     setTeammates(next);
-    const { players, settings } = live.current;
-    const fitted = fitMinimums(settings.minPerRole, teamSize(players, next));
-    if (totalMinimums(fitted) !== totalMinimums(settings.minPerRole)) {
-      setSettings({ ...settings, minPerRole: fitted });
-    }
+    raiseMaximums(live.current.players, next);
   };
   const commitRoster = (next: Roster) => {
     live.current.roster = next;
@@ -328,7 +338,7 @@ export default function App() {
   // Remove keeps the person's saved details and history, forgetting deletes them (D9).
   const removePlayer = (player: Player, forgetThem: boolean) => {
     // Read from `live`, since a friend leaving the party arrives here from a message, not a render.
-    const { players, teammates, roster, history, settings } = live.current;
+    const { players, roster, history } = live.current;
     // A party member who is removed is also disconnected, so they can't keep sending bans.
     if (player.member) host.kick(player.id);
     const removed = removeFromTeam(players, roster, history, player, forgetThem);
@@ -339,11 +349,6 @@ export default function App() {
         : removed;
     commitPlayers(next.players);
     commitRoster(next.roster);
-    // With fewer players the role minimums may no longer fit, so lower them to match.
-    const fitted = fitMinimums(settings.minPerRole, teamSize(next.players, teammates));
-    if (totalMinimums(fitted) !== totalMinimums(settings.minPerRole)) {
-      setSettings({ ...settings, minPerRole: fitted });
-    }
     if (next.history !== history) {
       setHistory(next.history);
       historyStore.save(next.history);

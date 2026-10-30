@@ -19,8 +19,14 @@ const player = (id: string, excludedAgents: string[] = [], bannedRoles: Role[] =
 });
 const team = ["a", "b", "c", "d", "e"].map((id) => player(id));
 
-const settings = (min: Partial<Record<Role, number>> = {}, historyAware = false): Settings => ({
+const settings = (
+  min: Partial<Record<Role, number>> = {},
+  historyAware = false,
+  max: Partial<Record<Role, number>> = {},
+): Settings => ({
   minPerRole: { duelist: 0, initiator: 0, controller: 0, sentinel: 0, ...min },
+  maxPerRole: { duelist: 5, initiator: 5, controller: 5, sentinel: 5, ...max },
+  ruleOn: { duelist: true, initiator: true, controller: true, sentinel: true },
   historyAware,
 });
 
@@ -148,10 +154,177 @@ describe("rollComp", () => {
     }
   });
 
+  describe("role maximums", () => {
+    it("never gives a role more players than its maximum", () => {
+      const max = { duelist: 1, initiator: 2, controller: 1, sentinel: 1 };
+      for (let seed = 0; seed < 300; seed++) {
+        const comp = rollComp(team, settings({}, false, max), {}, seeded(seed));
+        for (const role of Object.keys(max) as Role[]) {
+          expect(countRole(comp, role)).toBeLessThanOrEqual(max[role]);
+        }
+      }
+    });
+
+    it("keeps a role out of the team when its maximum is 0", () => {
+      for (let seed = 0; seed < 100; seed++) {
+        const comp = rollComp(team, settings({}, false, { sentinel: 0 }), {}, seeded(seed));
+        expect(countRole(comp, "sentinel")).toBe(0);
+      }
+    });
+
+    it("meets a minimum and a maximum together", () => {
+      for (let seed = 0; seed < 200; seed++) {
+        const comp = rollComp(team, settings({ duelist: 2 }, false, { duelist: 2 }), {}, seeded(seed));
+        expect(countRole(comp, "duelist")).toBe(2);
+      }
+    });
+
+    it("counts locked picks toward the maximum", () => {
+      const current: Assignment[] = [{ playerId: "a", agent: "Jett", role: "duelist" }];
+      for (let seed = 0; seed < 100; seed++) {
+        const comp = rollComp(team, settings({}, false, { duelist: 1 }), {}, seeded(seed), AGENTS, {
+          current,
+          keptIds: ["a"],
+        });
+        expect(countRole(comp, "duelist")).toBe(1);
+      }
+    });
+
+    it("counts random teammates toward the maximum", () => {
+      const ours = team.slice(0, 3);
+      const taken: Assignment[] = [
+        { playerId: "t1", agent: "Jett", role: "duelist" },
+        { playerId: "t2", agent: "Raze", role: "duelist" },
+      ];
+      for (let seed = 0; seed < 100; seed++) {
+        const comp = rollComp(ours, settings({}, false, { duelist: 2 }), {}, seeded(seed), AGENTS, undefined, taken);
+        expect(countRole(comp, "duelist")).toBe(0);
+      }
+    });
+
+    it("keeps locked picks that are already over a maximum and gives nobody else that role", () => {
+      const current: Assignment[] = [
+        { playerId: "a", agent: "Jett", role: "duelist" },
+        { playerId: "b", agent: "Raze", role: "duelist" },
+      ];
+      for (let seed = 0; seed < 100; seed++) {
+        const comp = rollComp(team, settings({}, false, { duelist: 1 }), {}, seeded(seed), AGENTS, {
+          current,
+          keptIds: ["a", "b"],
+        });
+        expect(comp.slice(0, 2)).toEqual(current);
+        expect(countRole(comp, "duelist")).toBe(2);
+      }
+    });
+
+    it("stays inside every range over many rolls with history", () => {
+      const history: History = {
+        a: [
+          { playerId: "a", agent: "Jett", role: "duelist" },
+          { playerId: "a", agent: "Raze", role: "duelist" },
+        ],
+      };
+      const min = { initiator: 1, controller: 1 };
+      const max = { duelist: 1, initiator: 2, controller: 2, sentinel: 1 };
+      for (let seed = 0; seed < 300; seed++) {
+        const comp = rollComp(team, settings(min, true, max), history, seeded(seed));
+        expect(countRole(comp, "initiator")).toBeGreaterThanOrEqual(1);
+        expect(countRole(comp, "controller")).toBeGreaterThanOrEqual(1);
+        for (const role of Object.keys(max) as Role[]) {
+          expect(countRole(comp, role)).toBeLessThanOrEqual(max[role]);
+        }
+      }
+    });
+  });
+
+  describe("a role whose switch is off", () => {
+    it("ignores the range it keeps", () => {
+      const off: Settings = {
+        ...settings({ duelist: 3 }, false, { sentinel: 0 }),
+        ruleOn: { duelist: false, initiator: true, controller: true, sentinel: false },
+      };
+      let duelists = 0;
+      let sentinels = 0;
+      for (let seed = 0; seed < 200; seed++) {
+        const comp = rollComp(team, off, {}, seeded(seed));
+        duelists += countRole(comp, "duelist");
+        sentinels += countRole(comp, "sentinel");
+      }
+      // With no rule they come up like any other role, which is not never and not always three.
+      expect(sentinels).toBeGreaterThan(0);
+      expect(duelists).toBeLessThan(200 * 3);
+    });
+
+    it("does not report a range that would be impossible if it were on", () => {
+      const off: Settings = {
+        ...settings({}, false, { duelist: 0, initiator: 0, controller: 0, sentinel: 0 }),
+        ruleOn: { duelist: false, initiator: false, controller: false, sentinel: false },
+      };
+      expect(rollComp(team, off, {}, seeded(1))).toHaveLength(5);
+    });
+
+    it("still applies the roles that are on", () => {
+      const mixed: Settings = {
+        ...settings({ duelist: 2, initiator: 2 }),
+        ruleOn: { duelist: true, initiator: false, controller: false, sentinel: false },
+      };
+      for (let seed = 0; seed < 100; seed++) {
+        expect(countRole(rollComp(team, mixed, {}, seeded(seed)), "duelist")).toBeGreaterThanOrEqual(2);
+      }
+    });
+  });
+
+  describe("minimums above the team size", () => {
+    const two = team.slice(0, 2);
+    const min = { duelist: 1, initiator: 1, controller: 1 };
+
+    it("gives two different required roles to two players", () => {
+      for (let seed = 0; seed < 200; seed++) {
+        const comp = rollComp(two, settings(min), {}, seeded(seed));
+        const roles = comp.map((a) => a.role);
+        expect(new Set(roles).size).toBe(2);
+        expect(roles).not.toContain("sentinel");
+      }
+    });
+
+    it("lets role history choose which required roles the team gets", () => {
+      const history: History = {
+        a: ["Jett", "Raze", "Neon"].map((agent) => ({ playerId: "a", agent, role: "duelist" as const })),
+        b: ["Jett", "Raze", "Neon"].map((agent) => ({ playerId: "b", agent, role: "duelist" as const })),
+      };
+      let duelists = 0;
+      for (let seed = 0; seed < 300; seed++) {
+        duelists += countRole(rollComp(two, settings(min, true), history, seeded(seed)), "duelist");
+      }
+      expect(duelists).toBeLessThan(300 * 2 * 0.5);
+    });
+
+    it("fills every player's slot when one role asks for more than the team", () => {
+      for (let seed = 0; seed < 50; seed++) {
+        const comp = rollComp(two, settings({ duelist: 4 }), {}, seeded(seed));
+        expect(countRole(comp, "duelist")).toBe(2);
+      }
+    });
+
+    it("rolls a team smaller than the required roles even when a player can't take them", () => {
+      const onlySentinel = player("a", [], ["duelist", "initiator", "controller"]);
+      for (let seed = 0; seed < 50; seed++) {
+        const comp = rollComp([onlySentinel, team[1]], settings(min), {}, seeded(seed));
+        expect(comp[0].role).toBe("sentinel");
+      }
+    });
+  });
+
   describe("impossible settings", () => {
-    it("rejects minimums that need more slots than there are players", () => {
-      const min = { duelist: 3, initiator: 1, controller: 1, sentinel: 1 };
-      expect(() => rollComp(team, settings(min), {}, seeded(1))).toThrow(RollError);
+    it("rejects maximums that leave no room for everyone", () => {
+      const max = { duelist: 1, initiator: 1, controller: 1, sentinel: 1 };
+      expect(() => rollComp(team, settings({}, false, max), {}, seeded(1))).toThrow(/room for 4 of the 5/);
+    });
+
+    it("rejects a minimum above its maximum", () => {
+      expect(() => rollComp(team, settings({ duelist: 3 }, false, { duelist: 2 }), {}, seeded(1))).toThrow(
+        /minimum \(3\) is above its maximum \(2\)/,
+      );
     });
 
     it("rejects a role no player is willing to play", () => {
