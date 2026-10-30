@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { agentIconUrl } from "../data/agents";
 import type { CardView } from "../lib/cards";
 import { keyForName } from "../lib/roster";
-import { CogIcon, LockIcon, TrashIcon } from "./icons";
+import { ProfileIcon, LockIcon, TrashIcon } from "./icons";
 
 /** One tappable part of a card, for the host's page. A part with none is plain. */
 export interface Zone {
@@ -25,7 +25,7 @@ export interface BarZone extends Zone {
 }
 
 /**
- * The three parts of a card (D38): Configure (a strip across the top on a wide card, a cog beside
+ * The three parts of a card (D38): Configure (a strip across the top on a wide card, a profile icon beside
  * the lock on a phone row), the card itself, which opens the agent window, and the bar.
  */
 export interface CardZones {
@@ -88,7 +88,7 @@ function Part({ zone, className, children }: { zone: Zone | undefined; className
  *
  * On the host's page a card has three tappable parts, each a real button, so a tap is never
  * ambiguous (D38). The card itself opens the agent window. Configure is a strip across the top of a
- * wide card, carrying the player's name and a dot for a joined friend, and a cog button beside the lock
+ * wide card, carrying the player's name and a dot for a joined friend, and a profile icon button beside the lock
  * on a phone row. The bar locks a pick, or removes a random teammate. The name and the dot are drawn
  * twice, once for each layout, and CSS hides the one that does not apply. A locked pick is a ring
  * round the card and a bar that reads Locked.
@@ -115,11 +115,11 @@ export function CardRow({ cards, you, kept = [], zones }: Props) {
               data-kept={isKept}
               data-outside={card.state === "teammate"}
             >
-              {/* Configure: a strip across the top, or a cog beside the lock on a phone */}
+              {/* Configure: a strip across the top, or a profile icon beside the lock on a phone */}
               <Part zone={z.config} className="card-config">
                 {card.state !== "empty" && <OnlineDot name={name} online={card.online} className="head-dot" />}
                 <span className="card-config-name">{heading}</span>
-                {z.config && <CogIcon size={14} />}
+                {z.config && <ProfileIcon size={14} />}
               </Part>
 
               {/* The card itself: the portrait and the text, which open the agent window */}

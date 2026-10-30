@@ -42,7 +42,7 @@ type CardWindow = { kind: "add" } | { kind: "teammate"; id: string } | null;
  * A player's card has three tappable parts (D36, D38):
  * 1. The card itself opens a window that gives them an agent by hand. The pick is locked, so Roll
  *    leaves it alone, and it works before the first roll too.
- * 2. The strip across the top (a cog on a phone) opens Configure: the name, the bans, Remove from team and Forget (D33).
+ * 2. The strip across the top (a profile icon on a phone) opens Configure: the name, the bans, Remove from team and Forget (D33).
  * 3. The bar along the bottom locks or unlocks the pick (D27), once there is an agent to lock.
  * An Empty card opens the window to add a player or a random teammate. A random teammate's card opens
  * a window to change their agent, and its bar removes them. After Lock in the portrait and the bar are
@@ -68,8 +68,6 @@ export function TeamCards({
   const [assignFor, setAssignFor] = useState<string | null>(null);
 
   const cards = buildCards(players, teammates, comp);
-  // Whether every player has an agent, which is when the comp counts as rolled. Until then only the assigned picks are in it.
-  const everyoneHasAgent = comp !== null && players.every((p) => comp.some((c) => c.playerId === playerKey(p)));
   const closeCardWindow = () => setCardWindow(null);
   const openCardWindow = (next: CardWindow) => setCardWindow(next);
 
@@ -178,11 +176,6 @@ export function TeamCards({
     <section aria-label="Team">
       <div aria-live="polite">
         <CardRow cards={cards} kept={kept} zones={zones} />
-
-        {/* Note: confirms the comp has reached history. The space is always kept, so the page below never jumps. */}
-        <p className="lock-note" data-locked={locked}>
-          {everyoneHasAgent && locked ? "Locked in. Saved to history." : "\u00a0"}
-        </p>
       </div>
 
       {/* Empty card or random teammate: the same kind of window as Configure */}

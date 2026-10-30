@@ -319,13 +319,6 @@ input:not([type]) {
   color: #fff;
 }
 
-/* Under the comp: says whether it has reached history yet. */
-.lock-note {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
 /*
  * Sits in the note's line without making it taller, so locking a card doesn't shift the page down.
  * The tap target is bigger than the text, through an invisible overlay instead of a tall button.
@@ -344,10 +337,6 @@ input:not([type]) {
   content: "";
   position: absolute;
   inset: -14px -10px;
-}
-
-.lock-note[data-locked="true"] {
-  color: var(--accent-text);
 }
 
 .roll.small {
@@ -417,7 +406,7 @@ input:not([type]) {
 /*
  * Phone: the team is a list of rows (D37), one per card, because a card has three parts to tap
  * and a 67px portrait has no room to show which is which. From tablet width they are cards in a row.
- * Each row is the card (portrait and text, which opens the agent window), a cog for Configure and a
+ * Each row is the card (portrait and text, which opens the agent window), a profile icon for Configure and a
  * square for the lock (D38).
  */
 .cards {
@@ -601,7 +590,7 @@ input:not([type]) {
 }
 
 /*
- * Configure. On a phone row it is a cog in a square beside the lock, and a plain card (a random
+ * Configure. On a phone row it is a profile icon in a square beside the lock, and a plain card (a random
  * teammate's, an Empty one, a friend's own page) has none. From tablet width it becomes the strip across
  * the top of the card, with the player's name.
  */
@@ -1540,7 +1529,7 @@ button.card-bar:disabled {
     border-radius: var(--radius);
   }
 
-  /* The strip across the top: the player's name, a dot for a friend, and a cog when it is a button. */
+  /* The strip across the top: the player's name, a dot for a friend, and a profile icon when it is a button. */
   .card-config,
   button.card-config {
     display: flex;
@@ -1885,18 +1874,7 @@ button.card-bar:disabled {
   padding: 20px 16px 48px;
 }
 
-.entry-lede {
-  margin: 8px 0 0;
-  color: var(--muted);
-}
-
-/* Host is a solid button like Roll, so it reads as a button and not a panel. Its sentence sits under it as a caption. */
-.entry-host {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
+/* Host is a solid button like Roll, so it reads as a button and not a panel. */
 .entry-create {
   display: flex;
   align-items: center;
@@ -1919,13 +1897,6 @@ button.card-bar:disabled {
 
 .entry-create:hover {
   background: var(--accent-hover);
-}
-
-.entry-caption {
-  margin: 0;
-  color: var(--muted);
-  text-align: center;
-  font-size: 0.9rem;
 }
 
 .entry-title {
@@ -1956,11 +1927,6 @@ button.card-bar:disabled {
 
 .rejoin small {
   flex: none;
-  color: var(--muted);
-}
-
-.entry-sub {
-  margin: 0;
   color: var(--muted);
 }
 

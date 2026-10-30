@@ -55,11 +55,6 @@ export function MemberView({ me, code, status, step, shared, onChange, onLeave }
           <section aria-live="polite">
             <h2 className="section-label">{shared?.rolled ? "Your comp" : "Waiting for the roll"}</h2>
             <CardRow cards={cards} you={me.name} />
-            {shared?.rolled && (
-              <p className="lock-note" data-locked={shared.rolled.locked}>
-                {shared.rolled.locked ? "Locked in. Saved to history." : "\u00a0"}
-              </p>
-            )}
           </section>
         ) : (
           <p className="empty">{step === "asking" ? "Asking the host to let you in…" : "Connecting to the party…"}</p>
