@@ -82,6 +82,15 @@ export function SettingsPanel({ settings, playerCount, onChange, aside }: Props)
         />
         <span>Avoid recent roles</span>
       </label>
+      <label className="switch-row history-toggle history-toggle-next">
+        <input
+          type="checkbox"
+          className="switch"
+          checked={settings.agentHistoryAware}
+          onChange={(e) => onChange({ ...settings, agentHistoryAware: e.target.checked })}
+        />
+        <span>Avoid recent agents</span>
+      </label>
       </div>
       {aside && <div className="rules-aside">{aside}</div>}
     </section>

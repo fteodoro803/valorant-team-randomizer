@@ -76,6 +76,7 @@ const defaultSettings: Settings = {
   maxPerRole: { duelist: MAX_PLAYERS, initiator: MAX_PLAYERS, controller: MAX_PLAYERS, sentinel: MAX_PLAYERS },
   ruleOn: { duelist: false, initiator: false, controller: false, sentinel: false },
   historyAware: true,
+  agentHistoryAware: true,
 };
 
 /** A finished roll and the players it was rolled for. The cards match players to it by their roll key. */

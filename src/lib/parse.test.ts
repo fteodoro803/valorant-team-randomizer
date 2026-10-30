@@ -44,6 +44,7 @@ describe("parseRoster", () => {
 describe("parseSettings", () => {
   const good = {
     historyAware: true,
+    agentHistoryAware: false,
     minPerRole: { duelist: 1, initiator: 0, controller: 0, sentinel: 0 },
     maxPerRole: { duelist: 3, initiator: 5, controller: 5, sentinel: 1 },
     ruleOn: { duelist: true, initiator: false, controller: false, sentinel: true },
@@ -62,6 +63,13 @@ describe("parseSettings", () => {
       maxPerRole: { duelist: 5, initiator: 5, controller: 5, sentinel: 5 },
       ruleOn: { duelist: true, initiator: false, controller: false, sentinel: false },
     });
+  });
+
+  it("loads settings saved before agents had a switch with it following the roles switch", () => {
+    const { agentHistoryAware: _, ...old } = good;
+    expect(parseSettings(old)?.agentHistoryAware).toBe(true);
+    expect(parseSettings({ ...old, historyAware: false })?.agentHistoryAware).toBe(false);
+    expect(parseSettings({ ...good, agentHistoryAware: "yes" })).toBeNull();
   });
 
   it("loads settings saved before the switches came back with a role on when its range is narrower", () => {

@@ -38,6 +38,8 @@ export interface Settings {
   ruleOn: Record<Role, boolean>;
   /** When on, roles a player has had recently are less likely to come up again. */
   historyAware: boolean;
+  /** When on, agents a player has had recently are less likely to come up again. Separate from the roles switch. */
+  agentHistoryAware: boolean;
 }
 
 /**
