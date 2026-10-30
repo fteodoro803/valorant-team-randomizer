@@ -21,8 +21,21 @@ export interface Player {
 }
 
 export interface Settings {
-  /** Minimum agents per role in the comp. 0 turns that role's toggle off. */
+  /**
+   * Minimum agents per role in the comp. Not limited by the team size: when the minimums ask for
+   * more than the team can hold, a roll fills as many of them as it can (D-new1).
+   */
   minPerRole: Record<Role, number>;
+  /**
+   * Maximum agents per role in the comp, from the role's minimum up to MAX_PLAYERS. The range 0 to
+   * MAX_PLAYERS asks for nothing.
+   */
+  maxPerRole: Record<Role, number>;
+  /**
+   * Whether each role's range applies. A role that is off keeps its range, so switching it back on
+   * restores it, but the roll and the sentence treat it as having no rule (D-new1).
+   */
+  ruleOn: Record<Role, boolean>;
   /** When on, roles a player has had recently are less likely to come up again. */
   historyAware: boolean;
 }

@@ -1187,12 +1187,13 @@ button.card-bar:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* Labels you tap shouldn't start a text selection when you tap them twice or drag across them. */
 .switch-row,
-.stepper-value {
+.role-name,
+.range-value {
   -webkit-user-select: none;
   user-select: none;
 }
@@ -1212,6 +1213,30 @@ button.card-bar:disabled {
   font-size: 1.4rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+.rule .switch-row {
+  gap: 8px;
+  min-width: 0;
+}
+
+.rule .role-name {
+  font-size: 1.2rem;
+}
+
+/* A role whose switch is off is greyed out, its range kept for when it is switched back on. */
+.rule.is-off .role-name {
+  color: var(--muted);
+}
+
+/* The rules as a sentence about the team, under the rows. */
+.rules-summary {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 /* A switch is a checkbox drawn as a track and a knob, so it keeps its keyboard and screen reader behaviour. */
@@ -1248,21 +1273,119 @@ button.card-bar:disabled {
   transform: translateX(18px);
 }
 
+/* The smaller switch on a role's row, so the row still fits a 375px phone. */
+.switch.small {
+  width: 36px;
+  height: 20px;
+}
+
+.switch.small::after {
+  top: 2px;
+  left: 2px;
+}
+
+.switch.small:checked::after {
+  transform: translateX(16px);
+}
+
 .switch:disabled {
   cursor: not-allowed;
   opacity: 0.4;
 }
 
-.stepper {
-  display: inline-flex;
+/* A role's range: a track with six notches, 0 to 5, and a handle for the fewest and one for the most. */
+.range {
+  display: flex;
+  flex: none;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
-.stepper-value {
-  min-width: 26px;
-  text-align: center;
+.range-track {
+  position: relative;
+  /* With the switch, the role name and the readout, the longest row (CONTROLLER, 3 or more) fits a 375px phone at this width. */
+  width: 84px;
+  height: 36px;
+  /* Vertical drags still scroll the page, so only a sideways drag moves a handle. */
+  touch-action: pan-y;
+  cursor: pointer;
+}
+
+.range-rail,
+.range-fill {
+  position: absolute;
+  top: 17px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.range-rail {
+  left: 10px;
+  right: 10px;
+  background: var(--line-strong);
+}
+
+.range-fill {
+  left: calc(10px + (100% - 20px) * var(--from));
+  right: calc(10px + (100% - 20px) * (1 - var(--to)));
+  background: var(--role-text);
+}
+
+.range-tick {
+  position: absolute;
+  top: 13px;
+  left: calc(10px + (100% - 20px) * var(--p) - 1px);
+  width: 2px;
+  height: 11px;
+  background: var(--line-strong);
+}
+
+/* The handle is a 20px dot with a larger invisible area around it, so it is easy to grab with a thumb. */
+.range-handle {
+  position: absolute;
+  top: 8px;
+  left: calc(10px + (100% - 20px) * var(--p) - 10px);
+  width: 20px;
+  height: 20px;
+  background: var(--text);
+  border: 3px solid var(--role-text);
+  border-radius: 50%;
+  box-sizing: border-box;
+  cursor: grab;
+}
+
+.range-handle::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+.range-handle:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* A role with no rule reads as paused: grey handles and fill, and "Any" in place of a range. */
+.range.is-off .range-fill {
+  background: var(--line-strong);
+}
+
+.range.is-off .range-handle {
+  background: var(--muted);
+  border-color: var(--line-strong);
+}
+
+.range.is-off .range-value {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.range-value {
+  width: 62px;
+  white-space: nowrap;
+  text-align: right;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .history-toggle {
@@ -1513,7 +1636,7 @@ button.card-bar:disabled {
     }
   }
 
-  /* Rules never gets narrower than its longest row (a switch, CONTROLLER and the stepper), which a tablet in portrait would otherwise squeeze. */
+  /* Rules never gets narrower than its longest row (a switch, CONTROLLER and the range track), which a tablet in portrait would otherwise squeeze. */
   .columns {
     grid-template-columns: minmax(0, 3fr) minmax(312px, 2fr);
   }

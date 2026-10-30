@@ -62,15 +62,37 @@ export function parseRoster(value: unknown): Roster | null {
   return roster;
 }
 
-/** Reads the saved rules back into Settings, or null if they aren't usable. */
+/**
+ * Reads the saved rules back into Settings, or null if they aren't usable.
+ *
+ * Rules saved before maximums existed hold only minimums. They load with every maximum at
+ * MAX_PLAYERS, which is no ceiling, so nobody loses a setting. Rules saved before the switches came
+ * back load with a role on when its range is narrower than the full one, so a roll behaves as it did.
+ */
 export function parseSettings(value: unknown): Settings | null {
-  const s = value as Settings | null;
-  const valid =
-    typeof s === "object" &&
-    s !== null &&
-    typeof s.historyAware === "boolean" &&
-    typeof s.minPerRole === "object" &&
-    s.minPerRole !== null &&
-    ROLES.every((role) => Number.isInteger(s.minPerRole[role]) && s.minPerRole[role] >= 0);
-  return valid ? s : null;
+  const s = value as (Partial<Settings> & { minPerRole?: Record<string, unknown> }) | null;
+  if (typeof s !== "object" || s === null || typeof s.historyAware !== "boolean") return null;
+  const mins = s.minPerRole;
+  const saved = s.maxPerRole as Record<string, unknown> | undefined;
+  if (typeof mins !== "object" || mins === null) return null;
+  if (saved !== undefined && (typeof saved !== "object" || saved === null)) return null;
+
+  const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 0 && (n as number) <= MAX_PLAYERS;
+  const savedOn = s.ruleOn as Record<string, unknown> | undefined;
+  if (savedOn !== undefined && (typeof savedOn !== "object" || savedOn === null)) return null;
+  const minPerRole = {} as Settings["minPerRole"];
+  const maxPerRole = {} as Settings["maxPerRole"];
+  const ruleOn = {} as Settings["ruleOn"];
+  for (const role of ROLES) {
+    const min = mins[role];
+    const max = saved === undefined ? MAX_PLAYERS : saved[role];
+    if (!isCount(min) || !isCount(max) || min > max) return null;
+    minPerRole[role] = min;
+    maxPerRole[role] = max;
+    // Saved before the switches came back: a role was on exactly when its range was narrower than the full one.
+    const on = savedOn === undefined ? !(min === 0 && max === MAX_PLAYERS) : savedOn[role];
+    if (typeof on !== "boolean") return null;
+    ruleOn[role] = on;
+  }
+  return { minPerRole, maxPerRole, ruleOn, historyAware: s.historyAware };
 }

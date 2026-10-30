@@ -216,9 +216,9 @@ export function TeamCards({
       <div aria-live="polite">
         <CardRow cards={cards} kept={kept} zones={zones} />
 
-        {/* Note: whether the comp has reached history. The space is always kept, so the page below never jumps. */}
+        {/* Note: confirms the comp has reached history. The space is always kept, so the page below never jumps. */}
         <p className="lock-note" data-locked={locked}>
-          {everyoneHasAgent ? (locked ? "Locked in. Saved to history." : "Not locked in yet. Not saved to history.") : "\u00a0"}
+          {everyoneHasAgent && locked ? "Locked in. Saved to history." : "\u00a0"}
         </p>
       </div>
 

@@ -18,7 +18,7 @@ The idea started in the owner's Project Ideas doc (Valorant Team App, 16 October
 
 **Phase 1 (built, being tried by the team):**
 1. Comp randomiser with a unique agent per player.
-2. Toggles for the minimum number of agents per role (duelist, initiator, controller, sentinel).
+2. A range for each role (duelist, initiator, controller, sentinel): the fewest and most agents it may have in the comp, read out in words, a switch for each that turns it on or off without losing the range, and a sentence saying what the rules mean for the team (D1, D-new1).
 3. A history-aware toggle so nobody is stuck on the same role. Keeps the last 10 rolls per player and weights against recent roles (D5).
 4. Per-player bans: agents and whole roles they never want (D1, D11). The code calls the agent list excluded agents.
 5. Players are saved by name. Typing a saved name, or pressing Add beside them in the saved list, fills in their bans, and their history follows the name (D8 to D10). A team has at most 5 players (D12).
