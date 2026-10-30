@@ -16,6 +16,7 @@ interface Props {
 
 /**
  * Roll, and the button beside it that is Lock in until the roll is locked in and New after (D26, D35).
+ * Once the roll is locked in, Roll is greyed out and reads "Game in progress", so New is the way on (D-new2).
  *
  * The page draws it twice, because a phone pins it to the bottom, a tablet puts it beside the title and a
  * desktop puts it in the Rules panel (D38). CSS shows one copy at a time, so only the visible one is
@@ -24,8 +25,8 @@ interface Props {
 export function RollBar({ rolled, locked, everyoneHasAgent, allKept, onRoll, onLockIn, onNew, className = "" }: Props) {
   return (
     <div className={`roll-bar ${className}`}>
-      <button type="button" className="roll" disabled={allKept} onClick={onRoll}>
-        Roll
+      <button type="button" className={`roll${locked ? " busy" : ""}`} disabled={allKept || locked} onClick={onRoll}>
+        {locked ? "Game in progress" : "Roll"}
       </button>
       <button
         type="button"

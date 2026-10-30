@@ -27,7 +27,6 @@ const settings = (
 ): Settings => ({
   minPerRole: { duelist: 0, initiator: 0, controller: 0, sentinel: 0, ...min },
   maxPerRole: { duelist: 5, initiator: 5, controller: 5, sentinel: 5, ...max },
-  ruleOn: { duelist: true, initiator: true, controller: true, sentinel: true },
   historyAware,
   agentHistoryAware,
 });
@@ -279,43 +278,6 @@ describe("rollComp", () => {
         for (const role of Object.keys(max) as Role[]) {
           expect(countRole(comp, role)).toBeLessThanOrEqual(max[role]);
         }
-      }
-    });
-  });
-
-  describe("a role whose switch is off", () => {
-    it("ignores the range it keeps", () => {
-      const off: Settings = {
-        ...settings({ duelist: 3 }, false, { sentinel: 0 }),
-        ruleOn: { duelist: false, initiator: true, controller: true, sentinel: false },
-      };
-      let duelists = 0;
-      let sentinels = 0;
-      for (let seed = 0; seed < 200; seed++) {
-        const comp = rollComp(team, off, {}, seeded(seed));
-        duelists += countRole(comp, "duelist");
-        sentinels += countRole(comp, "sentinel");
-      }
-      // With no rule they come up like any other role, which is not never and not always three.
-      expect(sentinels).toBeGreaterThan(0);
-      expect(duelists).toBeLessThan(200 * 3);
-    });
-
-    it("does not report a range that would be impossible if it were on", () => {
-      const off: Settings = {
-        ...settings({}, false, { duelist: 0, initiator: 0, controller: 0, sentinel: 0 }),
-        ruleOn: { duelist: false, initiator: false, controller: false, sentinel: false },
-      };
-      expect(rollComp(team, off, {}, seeded(1))).toHaveLength(5);
-    });
-
-    it("still applies the roles that are on", () => {
-      const mixed: Settings = {
-        ...settings({ duelist: 2, initiator: 2 }),
-        ruleOn: { duelist: true, initiator: false, controller: false, sentinel: false },
-      };
-      for (let seed = 0; seed < 100; seed++) {
-        expect(countRole(rollComp(team, mixed, {}, seeded(seed)), "duelist")).toBeGreaterThanOrEqual(2);
       }
     });
   });

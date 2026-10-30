@@ -47,7 +47,6 @@ const defaultTeammates: Teammate[] = [];
 const defaultSettings: Settings = {
   minPerRole: { duelist: 0, initiator: 0, controller: 0, sentinel: 0 },
   maxPerRole: { duelist: MAX_PLAYERS, initiator: MAX_PLAYERS, controller: MAX_PLAYERS, sentinel: MAX_PLAYERS },
-  ruleOn: { duelist: false, initiator: false, controller: false, sentinel: false },
   historyAware: true,
   agentHistoryAware: true,
 };

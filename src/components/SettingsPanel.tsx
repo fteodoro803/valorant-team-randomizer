@@ -17,23 +17,42 @@ interface Props {
  * The roll's rules: a range for each role (the least and most players it may have), a sentence saying
  * what they mean for the team, and whether history counts.
  *
- * A role's switch turns its range on or off and never changes the range, so switching a role off and
- * on again gives back what was set. An off role is greyed out and the roll ignores it (D39).
+ * A role at the full range, 0 to 5, has no rule, and setting its most to 0 leaves it out (D39).
  * Minimums can be any size, since a roll fills as many required roles as the team can hold, but the
- * maximum handle stops where the maximums would stop leaving room for the team.
+ * maximum stepper stops where the maximums would stop leaving room for the team.
  *
  * On a desktop the panel is two halves, the rules on the left and `aside` centred in the right half (D38).
  */
 export function SettingsPanel({ settings, playerCount, onChange, aside }: Props) {
-  const setRuleOn = (role: (typeof ROLES)[number], on: boolean) =>
-    onChange({ ...settings, ruleOn: { ...settings.ruleOn, [role]: on } });
-
   const setRange = (role: (typeof ROLES)[number], min: number, max: number) =>
     onChange({
       ...settings,
       minPerRole: { ...settings.minPerRole, [role]: min },
       maxPerRole: { ...settings.maxPerRole, [role]: max },
     });
+
+  const historyToggles = (
+    <>
+      <label className="switch-row">
+        <input
+          type="checkbox"
+          className="switch"
+          checked={settings.historyAware}
+          onChange={(e) => onChange({ ...settings, historyAware: e.target.checked })}
+        />
+        <span>Avoid recent roles</span>
+      </label>
+      <label className="switch-row">
+        <input
+          type="checkbox"
+          className="switch"
+          checked={settings.agentHistoryAware}
+          onChange={(e) => onChange({ ...settings, agentHistoryAware: e.target.checked })}
+        />
+        <span>Avoid recent agents</span>
+      </label>
+    </>
+  );
 
   return (
     <section className="panel rules-panel">
@@ -46,22 +65,13 @@ export function SettingsPanel({ settings, playerCount, onChange, aside }: Props)
           const min = settings.minPerRole[role];
           const max = settings.maxPerRole[role];
           return (
-            <li key={role} className={`rule ${role}${settings.ruleOn[role] ? "" : " is-off"}`}>
-              <label className="switch-row">
-                <input
-                  type="checkbox"
-                  className="switch small"
-                  checked={settings.ruleOn[role]}
-                  onChange={(e) => setRuleOn(role, e.target.checked)}
-                />
-                <span className="role-name">{role}</span>
-              </label>
+            <li key={role} className={`rule ${role}`}>
+              <span className="role-name">{role}</span>
               <RoleRange
                 label={role}
                 min={min}
                 max={max}
                 lowestMax={lowestMaximum(settings, role, playerCount)}
-                disabled={!settings.ruleOn[role]}
                 onChange={(nextMin, nextMax) => setRange(role, nextMin, nextMax)}
               />
             </li>
@@ -70,29 +80,18 @@ export function SettingsPanel({ settings, playerCount, onChange, aside }: Props)
       </ul>
 
       {/* What the rules mean for the team */}
-      <p className="rules-summary">{describeRules(settings, playerCount)}</p>
+      <p className="rules-summary">{describeRules(settings)}</p>
 
-      {/* History */}
-      <label className="switch-row history-toggle">
-        <input
-          type="checkbox"
-          className="switch"
-          checked={settings.historyAware}
-          onChange={(e) => onChange({ ...settings, historyAware: e.target.checked })}
-        />
-        <span>Avoid recent roles</span>
-      </label>
-      <label className="switch-row history-toggle history-toggle-next">
-        <input
-          type="checkbox"
-          className="switch"
-          checked={settings.agentHistoryAware}
-          onChange={(e) => onChange({ ...settings, agentHistoryAware: e.target.checked })}
-        />
-        <span>Avoid recent agents</span>
-      </label>
+      {/* History: here under the rules, and on a desktop above Roll instead */}
+      <div className="history-main">{historyToggles}</div>
       </div>
-      {aside && <div className="rules-aside">{aside}</div>}
+      {/* Desktop only: the history switches stacked above Roll and Lock in (D-new2) */}
+      <div className="rules-aside">
+        <div className="rules-aside-inner">
+          <div className="history-aside">{historyToggles}</div>
+          {aside}
+        </div>
+      </div>
     </section>
   );
 }

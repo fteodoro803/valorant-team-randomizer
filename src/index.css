@@ -307,6 +307,12 @@ input:not([type]) {
 }
 
 /* Lock in (which becomes Clear once locked in) sits beside Roll but stays quieter, since Roll is the big action. */
+/* Roll after Lock in reads "Game in progress", which is longer than Roll, so the words are smaller to fit the same button. */
+.roll.busy {
+  font-size: 1.15rem;
+  letter-spacing: 0.06em;
+}
+
 .roll.lock {
   flex: 0 0 38%;
   background: transparent;
@@ -1204,7 +1210,7 @@ button.card-bar:disabled {
 /* Labels you tap shouldn't start a text selection when you tap them twice or drag across them. */
 .switch-row,
 .role-name,
-.range-value {
+.range {
   -webkit-user-select: none;
   user-select: none;
 }
@@ -1226,18 +1232,9 @@ button.card-bar:disabled {
   text-transform: uppercase;
 }
 
-.rule .switch-row {
-  gap: 8px;
-  min-width: 0;
-}
-
 .rule .role-name {
+  min-width: 0;
   font-size: 1.2rem;
-}
-
-/* A role whose switch is off is greyed out, its range kept for when it is switched back on. */
-.rule.is-off .role-name {
-  color: var(--muted);
 }
 
 /* The rules as a sentence about the team, under the rows. */
@@ -1284,27 +1281,12 @@ button.card-bar:disabled {
   transform: translateX(18px);
 }
 
-/* The smaller switch on a role's row, so the row still fits a 375px phone. */
-.switch.small {
-  width: 36px;
-  height: 20px;
-}
-
-.switch.small::after {
-  top: 2px;
-  left: 2px;
-}
-
-.switch.small:checked::after {
-  transform: translateX(16px);
-}
-
 .switch:disabled {
   cursor: not-allowed;
   opacity: 0.4;
 }
 
-/* A role's range: a track with six notches, 0 to 5, and a handle for the fewest and one for the most. */
+/* A role's range: a stepper for the fewest and one for the most, tinted in the role's colour, with "to" between them. */
 .range {
   display: flex;
   flex: none;
@@ -1312,105 +1294,66 @@ button.card-bar:disabled {
   gap: 6px;
 }
 
-.range-track {
-  position: relative;
-  /* With the switch, the role name and the readout, the longest row (CONTROLLER, 3 or more) fits a 375px phone at this width. */
-  width: 84px;
+.range-to {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  background: var(--role-tint);
+  border-radius: 999px;
+}
+
+.step {
+  /* 36px is the touch target, and the pill hugs it. */
+  width: 36px;
   height: 36px;
-  /* Vertical drags still scroll the page, so only a sideways drag moves a handle. */
-  touch-action: pan-y;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  color: var(--role-text);
+  font-size: 1.25rem;
+  line-height: 1;
   cursor: pointer;
 }
 
-.range-rail,
-.range-fill {
-  position: absolute;
-  top: 17px;
-  height: 3px;
-  border-radius: 2px;
-}
-
-.range-rail {
-  left: 10px;
-  right: 10px;
-  background: var(--line-strong);
-}
-
-.range-fill {
-  left: calc(10px + (100% - 20px) * var(--from));
-  right: calc(10px + (100% - 20px) * (1 - var(--to)));
-  background: var(--role-text);
-}
-
-.range-tick {
-  position: absolute;
-  top: 13px;
-  left: calc(10px + (100% - 20px) * var(--p) - 1px);
-  width: 2px;
-  height: 11px;
-  background: var(--line-strong);
-}
-
-/* The handle is a 20px dot with a larger invisible area around it, so it is easy to grab with a thumb. */
-.range-handle {
-  position: absolute;
-  top: 8px;
-  left: calc(10px + (100% - 20px) * var(--p) - 10px);
-  width: 20px;
-  height: 20px;
-  background: var(--text);
-  border: 3px solid var(--role-text);
-  border-radius: 50%;
-  box-sizing: border-box;
-  cursor: grab;
-}
-
-.range-handle::before {
-  content: "";
-  position: absolute;
-  inset: -8px;
-}
-
-.range-handle:focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 3px;
-}
-
-/* A role with no rule reads as paused: grey handles and fill, and "Any" in place of a range. */
-.range.is-off .range-fill {
-  background: var(--line-strong);
-}
-
-.range.is-off .range-handle {
-  background: var(--muted);
-  border-color: var(--line-strong);
-}
-
-.range.is-off .range-value {
+.step[aria-disabled="true"] {
   color: var(--muted);
-  font-weight: 500;
+  opacity: 0.45;
+  cursor: default;
 }
 
-.range-value {
-  width: 62px;
-  white-space: nowrap;
-  text-align: right;
+.step:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
+.step-value {
+  min-width: 14px;
+  text-align: center;
+  color: var(--role-text);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.history-toggle {
+/* The two history switches, under the rules sentence. On a desktop they move above Roll instead (see .history-aside). */
+.history-main {
+  display: flex;
   flex: none;
+  flex-direction: column;
+  gap: 12px;
   margin-top: 4px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
 
-/* The second switch sits under the first without a rule of its own */
-.history-toggle-next {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+.history-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* History */
@@ -1482,12 +1425,17 @@ button.card-bar:disabled {
     border: 0;
   }
 
+  /* A fixed width, wide enough for "Game in progress", so Roll becoming that after Lock in doesn't change its size. */
   .roll {
     flex: none;
-    width: auto;
+    width: 14.5rem;
     height: 52px;
-    padding: 0 44px;
+    padding: 0;
     font-size: 1.65rem;
+  }
+
+  .roll.busy {
+    font-size: 1.3rem;
   }
 
   /* A fixed width, wide enough for both words, so swapping Lock in for Clear doesn't change the button's size. */
@@ -1654,7 +1602,7 @@ button.card-bar:disabled {
     }
   }
 
-  /* Rules never gets narrower than its longest row (a switch, CONTROLLER and the range track), which a tablet in portrait would otherwise squeeze. */
+  /* Rules never gets narrower than its longest row (CONTROLLER and the two steppers), which a tablet in portrait would otherwise squeeze. */
   .columns {
     grid-template-columns: minmax(0, 3fr) minmax(312px, 2fr);
   }
@@ -1736,10 +1684,23 @@ button.card-bar:disabled {
     column-gap: 48px;
   }
 
+  .history-main {
+    display: none;
+  }
+
   .rules-aside {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  /* The history switches sit above Roll and Lock in, all in one column centred in the right half (D-new2). */
+  .rules-aside-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 260px;
   }
 
   .roll-bar-rules {
@@ -1747,7 +1708,6 @@ button.card-bar:disabled {
     flex-direction: column;
     gap: 12px;
     width: 100%;
-    max-width: 260px;
   }
 
   .roll-bar-rules .roll,
