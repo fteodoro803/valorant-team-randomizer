@@ -56,7 +56,6 @@ export function EntryPage({ last, initial, onCreate, onJoin }: Props) {
           ← Back to Projects
         </a>
         <h1>Team randomiser</h1>
-        <p className="entry-lede">Give everyone an agent for the next game.</p>
       </header>
 
       {/* Rejoin: the last party again, above the choices because it is the likeliest one */}
@@ -69,19 +68,15 @@ export function EntryPage({ last, initial, onCreate, onJoin }: Props) {
         </button>
       )}
 
-      {/* Host: a solid button to the main page, with its sentence as a caption */}
-      <div className="entry-host">
-        <button type="button" className="entry-create" onClick={onCreate}>
-          <span>Host a team</span>
-          <ArrowRightIcon size={26} />
-        </button>
-        <p className="entry-caption">Build the team and roll. Friends can join from their phones.</p>
-      </div>
+      {/* Host: a solid button to the main page */}
+      <button type="button" className="entry-create" onClick={onCreate}>
+        <span>Host a team</span>
+        <ArrowRightIcon size={26} />
+      </button>
 
       {/* Join: a code and a name */}
       <form className="panel entry-join" onSubmit={submit}>
         <h2 className="entry-title">Join</h2>
-        <p className="entry-sub">Got a code from a friend? Pick your bans and see the roll on your own phone.</p>
         <div className="entry-field">
           <span className="section-label">Party code</span>
           <CodeBoxes boxes={boxes} onChange={setBoxes} onFull={() => nameRef.current?.focus()} />
