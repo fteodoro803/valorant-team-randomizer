@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { HostStatus } from "../hooks/useParty";
 import { buildCards } from "../lib/cards";
 import type { CardView } from "../lib/cards";
 import { addSavedToTeam, findSaved, playerKey } from "../lib/roster";
@@ -32,16 +31,15 @@ interface Props {
   onToggleKept: (rollId: string) => void;
   /** Give a player this agent by hand, and lock it for them. `rollId` is the player's roll key. */
   onAssign: (rollId: string, agent: string) => void;
-  /** The party this team is hosting, if any: its code once it is open, and how many friends are in. */
-  party: { code: string | null; status: HostStatus; onStart: () => void; onStop: () => void };
+  /** Whether a party is open, which shows the advice about hosting from a computer. */
+  hosting: boolean;
 }
 
 /** Which card window is open. It names a random teammate by id, so it can still be found after the lists change. */
 type CardWindow = { kind: "add" } | { kind: "teammate"; id: string } | null;
 
 /**
- * The team: five cards that are both the team list and the roll's result (D32), with Start a party
- * beside the heading.
+ * The team: five cards that are both the team list and the roll's result (D32).
  *
  * A player's card has three tappable parts (D36, D38):
  * 1. The card itself opens a window that gives them an agent by hand. The pick is locked, so Roll
@@ -50,8 +48,7 @@ type CardWindow = { kind: "add" } | { kind: "teammate"; id: string } | null;
  * 3. The bar along the bottom locks or unlocks the pick (D27), once there is an agent to lock.
  * An Empty card opens the window to add a player or a random teammate. A random teammate's card opens
  * a window to change their agent, and its bar removes them. After Lock in the portrait and the bar are
- * greyed out until New, so the saved history can't be edited. While a party is open the heading
- * carries its code, and a joined friend's card has its status dot.
+ * greyed out until New, so the saved history can't be edited. A joined friend's card has its status dot.
  */
 export function TeamCards({
   players,
@@ -66,7 +63,7 @@ export function TeamCards({
   onForget,
   onToggleKept,
   onAssign,
-  party,
+  hosting,
 }: Props) {
   const [cardWindow, setCardWindow] = useState<CardWindow>(null);
   // The player whose Configure window is open, and the player whose Assign window is open, by id so they survive a name edit.
@@ -182,32 +179,8 @@ export function TeamCards({
 
   return (
     <section aria-label="Team">
-      {/* Heading: the code while hosting, and one button that is Start a party until a party is open and Stop party after, so nothing shifts */}
-      <div className="panel-head">
-        <h2 className="section-label">
-          Team
-          {/* The brackets sit outside the inner span so a tap selects just the code, ready to copy */}
-          {party.code && (
-            <span className="party-code-tag">
-              (<span className="party-code-text">{party.code}</span>)
-            </span>
-          )}
-        </h2>
-        <div className="panel-actions">
-          {party.status === "open" ? (
-            <button type="button" className="ghost" onClick={party.onStop}>
-              Stop party
-            </button>
-          ) : (
-            <button type="button" className="ghost" disabled={party.status === "connecting"} onClick={party.onStart}>
-              {party.status === "connecting" ? "Starting…" : "Start a party"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Advice for the host, wide screens only: a phone has no room for it, and the button doesn't move either way */}
-      {party.status === "open" && (
+      {/* Advice for the host, wide screens only: a phone has no room for it */}
+      {hosting && (
         <p className="party-hint">
           Host from a computer if you can: if this page closes or its device sleeps, the party ends for everyone.
         </p>
