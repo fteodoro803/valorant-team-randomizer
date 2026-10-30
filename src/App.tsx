@@ -599,11 +599,29 @@ export default function App() {
 
   return (
     <main className="app">
-      {/* Header: the title, with Roll and Lock in beside it on a tablet and pinned to the bottom on phones. A desktop has them in the Rules panel. */}
-      <header className="app-head">
-        <div>
+      {/* Header: Home, the title, the party code and the party button on one row. Roll and Lock in join it on a tablet and are pinned to the bottom on phones. A desktop has them in the Rules panel. */}
+      <header className="app-head app-head-main">
+        <div className="app-head-title">
           <HomeButton label="Home" onClick={goHome} />
           <h1>Team randomiser</h1>
+          {/* The brackets sit outside the inner span so a tap selects just the code, ready to copy */}
+          {host.code && (
+            <span className="party-code-tag">
+              (<span className="party-code-text">{host.code}</span>)
+            </span>
+          )}
+        </div>
+        {/* One button that is Start a party until a party is open and Stop party after, so nothing shifts */}
+        <div className="panel-actions">
+          {host.status === "open" ? (
+            <button type="button" className="ghost" onClick={stopParty}>
+              Stop party
+            </button>
+          ) : (
+            <button type="button" className="ghost" disabled={host.status === "connecting"} onClick={host.start}>
+              {host.status === "connecting" ? "Starting…" : "Start a party"}
+            </button>
+          )}
         </div>
         {rollBar("roll-bar-head")}
       </header>
@@ -628,12 +646,7 @@ export default function App() {
           onForget={forget}
           onToggleKept={toggleKept}
           onAssign={assignAgent}
-          party={{
-            code: host.code,
-            status: host.status,
-            onStart: host.start,
-            onStop: stopParty,
-          }}
+          hosting={host.status === "open"}
         />
       </div>
 
