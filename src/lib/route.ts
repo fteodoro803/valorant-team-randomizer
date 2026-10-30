@@ -1,6 +1,6 @@
 import { isPartyCode, normaliseCode } from "./party";
 
-/** The three pages, each with its own address after the # so Back and refresh work (D-new2). A friend joins from #/party/<code> (D-new5). */
+/** The three pages, each with its own address after the # so Back and refresh work (D44). A friend joins from #/party/<code> (D47). */
 export type Route = "entry" | "host" | "party";
 
 const HASHES: Record<Route, string> = { entry: "#/", host: "#/host", party: "#/party" };

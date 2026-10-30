@@ -43,7 +43,7 @@ export default function App() {
     setRoster(next);
   };
 
-  // The page is the address (#/, #/host, #/party), so Back and refresh work (D-new2). Back from the host's page
+  // The page is the address (#/, #/host, #/party), so Back and refresh work (D44). Back from the host's page
   // asks the question Home asks, and Back from a friend's page leaves the party.
   const leaveHost = useRef<() => boolean>(() => true);
   function allowNavigation(_to: Route, from: Route) {
@@ -104,7 +104,7 @@ export default function App() {
 
   // An address with no party behind it, such as #/party typed in or reached by Forward, goes to the entry page.
   // A device still trying to get back into its party keeps it, and a join link (#/party/K7QD) stays, since
-  // the entry page opens with its code filled in (D-new5).
+  // the entry page opens with its code filled in (D47).
   useEffect(() => {
     if (route === "party" && !memberActive && !wantRejoin && !loadSession(storage) && !joinCodeOf(hash)) {
       go("entry", true);

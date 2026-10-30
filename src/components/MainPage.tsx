@@ -369,7 +369,7 @@ export function MainPage({ active, storage, roster, onRosterChange, toast, notif
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [host.status, players, teammates, rolled, error]);
 
-  // Copies the link friends open to join, with the party's code in it (D-new5).
+  // Copies the link friends open to join, with the party's code in it (D47).
   const shareLink = () => {
     if (!host.code) return;
     const base = `${window.location.origin}${window.location.pathname}`;
