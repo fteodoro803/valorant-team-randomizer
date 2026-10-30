@@ -23,11 +23,13 @@ const settings = (
   min: Partial<Record<Role, number>> = {},
   historyAware = false,
   max: Partial<Record<Role, number>> = {},
+  agentHistoryAware = false,
 ): Settings => ({
   minPerRole: { duelist: 0, initiator: 0, controller: 0, sentinel: 0, ...min },
   maxPerRole: { duelist: 5, initiator: 5, controller: 5, sentinel: 5, ...max },
   ruleOn: { duelist: true, initiator: true, controller: true, sentinel: true },
   historyAware,
+  agentHistoryAware,
 });
 
 const countRole = (comp: Assignment[], role: Role) => comp.filter((a) => a.role === role).length;
@@ -130,6 +132,50 @@ describe("rollComp", () => {
       return hits / 2000;
     };
     expect(rate(true)).toBeLessThan(rate(false) / 2);
+  });
+
+  it("makes an agent less likely for a player who had it lately, when agent history is on", () => {
+    const history: History = {
+      a: Array.from({ length: 10 }, () => ({ playerId: "a", agent: "Jett", role: "duelist" as Role })),
+    };
+    const rate = (agentHistoryAware: boolean) => {
+      let hits = 0;
+      for (let seed = 0; seed < 2000; seed++) {
+        const comp = rollComp(team, settings({}, false, {}, agentHistoryAware), history, seeded(seed));
+        if (comp[0].agent === "Jett") hits++;
+      }
+      return hits / 2000;
+    };
+    expect(rate(true)).toBeLessThan(rate(false) / 2);
+  });
+
+  it("leaves the role odds alone when only agent history is on", () => {
+    const history: History = {
+      a: Array.from({ length: 10 }, () => ({ playerId: "a", agent: "Jett", role: "duelist" as Role })),
+    };
+    const duelists = (agentHistoryAware: boolean) => {
+      let hits = 0;
+      for (let seed = 0; seed < 2000; seed++) {
+        const comp = rollComp(team, settings({}, false, {}, agentHistoryAware), history, seeded(seed));
+        if (comp[0].role === "duelist") hits++;
+      }
+      return hits / 2000;
+    };
+    expect(Math.abs(duelists(true) - duelists(false))).toBeLessThan(0.05);
+  });
+
+  it("still gives the only agent left in a role, whatever the agent history", () => {
+    const lone = player("a", AGENTS.filter((x) => x.role === "duelist" && x.name !== "Jett").map((x) => x.name));
+    const history: History = {
+      a: Array.from({ length: 10 }, () => ({ playerId: "a", agent: "Jett", role: "duelist" as Role })),
+    };
+    const comp = rollComp(
+      [lone],
+      settings({ duelist: 1 }, false, { initiator: 0, controller: 0, sentinel: 0 }, true),
+      history,
+      seeded(3),
+    );
+    expect(comp[0].agent).toBe("Jett");
   });
 
   it("ignores history when the toggle is off", () => {

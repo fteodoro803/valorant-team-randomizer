@@ -89,7 +89,9 @@ export function rollComp(
       drawRoles(weights, minimums, room, rng) ??
       (overAsked ? drawRoles(weights, minimums.map(() => 0), room, rng) : null);
     if (roles === null) break;
-    const rolled = pickAgents(open, roles, pool, rng);
+    const rolled = pickAgents(open, roles, pool, rng, (player, agent) =>
+      agentWeight(player, agent, settings, history),
+    );
     if (rolled !== null) {
       // 3. Put the kept picks back, so the comp stays in the team's order.
       return players.map(
@@ -130,6 +132,19 @@ function roleWeight(
   if (!canPlayRole(player, role, agents)) return 0;
   if (!settings.historyAware) return 1;
   const recent = (history[player.id] ?? []).filter((pick) => pick.role === role).length;
+  return 1 / (1 + recent);
+}
+
+/**
+ * How likely a player is to be given an agent within their drawn role, from 1 (not had lately) downwards.
+ *
+ * Works like `roleWeight`: 1 / (1 + times the player had the agent in their remembered picks). It
+ * never reaches zero, so it only reorders the agents and can't make a roll fail. It acts after the
+ * role is drawn, so it never changes the role odds.
+ */
+function agentWeight(player: Player, agent: Agent, settings: Settings, history: History): number {
+  if (!settings.agentHistoryAware) return 1;
+  const recent = (history[player.id] ?? []).filter((pick) => pick.agent === agent.name).length;
   return 1 / (1 + recent);
 }
 
@@ -211,13 +226,16 @@ function drawIndex(shares: number[], rng: () => number): number {
 /**
  * Gives each player a random agent in their drawn role, none repeated and none
  * from their excluded list. Backtracks if a player runs out of choices.
- * Returns null when the roles can't be filled with distinct agents.
+ *
+ * The order each player's agents are tried in is a draw weighted by `weight`, so agents they had
+ * recently come up later. Returns null when the roles can't be filled with distinct agents.
  */
 function pickAgents(
   players: Player[],
   roles: Role[],
   agents: Agent[],
   rng: () => number,
+  weight: (player: Player, agent: Agent) => number,
 ): Assignment[] | null {
   const used = new Set<string>();
   const comp: Assignment[] = [];
@@ -226,8 +244,9 @@ function pickAgents(
     if (index === players.length) return true;
     const player = players[index];
     const role = roles[index];
-    const options = shuffle(
+    const options = weightedOrder(
       agents.filter((a) => a.role === role && !player.excludedAgents.includes(a.name)),
+      (agent) => weight(player, agent),
       rng,
     );
     for (const agent of options) {
@@ -310,12 +329,19 @@ function validate(players: Player[], settings: Settings, agents: Agent[]): void 
   }
 }
 
-/** Fisher-Yates shuffle of a copy. */
-function shuffle<T>(items: readonly T[], rng: () => number): T[] {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+/**
+ * A copy of the items in a random order where heavier items tend to come first.
+ *
+ * Each place is drawn from what is left with chance proportional to weight. When every weight is 1
+ * this is the same as a shuffle, so it is used for every roll, switch on or off.
+ */
+function weightedOrder<T>(items: readonly T[], weight: (item: T) => number, rng: () => number): T[] {
+  const left = [...items];
+  const ordered: T[] = [];
+  while (left.length > 0) {
+    const chosen = drawIndex(left.map(weight), rng);
+    ordered.push(left[chosen]);
+    left.splice(chosen, 1);
   }
-  return copy;
+  return ordered;
 }

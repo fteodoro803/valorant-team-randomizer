@@ -94,5 +94,8 @@ export function parseSettings(value: unknown): Settings | null {
     if (typeof on !== "boolean") return null;
     ruleOn[role] = on;
   }
-  return { minPerRole, maxPerRole, ruleOn, historyAware: s.historyAware };
+  // Saved before agents had their own switch: it follows the roles switch, so a roll behaves as it did.
+  const agentHistoryAware = s.agentHistoryAware ?? s.historyAware;
+  if (typeof agentHistoryAware !== "boolean") return null;
+  return { minPerRole, maxPerRole, ruleOn, historyAware: s.historyAware, agentHistoryAware };
 }
