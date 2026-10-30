@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { canRaiseMinimums } from "../lib/minimums";
+import { describeRules, lowestMaximum } from "../lib/minimums";
 import type { Settings } from "../lib/types";
 import { ROLES } from "../lib/types";
-import { MinusIcon, PlusIcon } from "./icons";
+import { RoleRange } from "./RoleRange";
 
 interface Props {
   settings: Settings;
-  /** How many players are on the team, which caps how many can be required. */
+  /** How many players are on the team, which the maximums have to leave room for. */
   playerCount: number;
   onChange: (settings: Settings) => void;
   /** Shown in the panel's right half on a desktop, centred there. The page puts Roll and Lock in here. */
@@ -14,71 +14,63 @@ interface Props {
 }
 
 /**
- * The roll's toggles: a minimum for each role, and whether history counts.
+ * The roll's rules: a range for each role (the least and most players it may have), a sentence saying
+ * what they mean for the team, and whether history counts.
  *
- * A role's switch is on when its minimum is above 0. Switching it on starts
- * at 1, and the − and + buttons change it from there. The minimums can never
- * add up to more than the team has players, so + stops once they do.
+ * A role's switch turns its range on or off and never changes the range, so switching a role off and
+ * on again gives back what was set. An off role is greyed out and the roll ignores it (D39).
+ * Minimums can be any size, since a roll fills as many required roles as the team can hold, but the
+ * maximum handle stops where the maximums would stop leaving room for the team.
  *
  * On a desktop the panel is two halves, the rules on the left and `aside` centred in the right half (D38).
  */
 export function SettingsPanel({ settings, playerCount, onChange, aside }: Props) {
-  const canAdd = canRaiseMinimums(settings.minPerRole, playerCount);
-  const fullMessage = `Every player already has a required role (${playerCount} on the team).`;
+  const setRuleOn = (role: (typeof ROLES)[number], on: boolean) =>
+    onChange({ ...settings, ruleOn: { ...settings.ruleOn, [role]: on } });
 
-  const setMin = (role: (typeof ROLES)[number], min: number) =>
-    onChange({ ...settings, minPerRole: { ...settings.minPerRole, [role]: min } });
+  const setRange = (role: (typeof ROLES)[number], min: number, max: number) =>
+    onChange({
+      ...settings,
+      minPerRole: { ...settings.minPerRole, [role]: min },
+      maxPerRole: { ...settings.maxPerRole, [role]: max },
+    });
 
   return (
     <section className="panel rules-panel">
       <div className="rules-main">
       <h2 className="section-label">Rules</h2>
-      <p className="panel-hint">Minimum per role</p>
 
-      {/* Role minimums */}
+      {/* Role ranges */}
       <ul className="rules">
         {ROLES.map((role) => {
           const min = settings.minPerRole[role];
+          const max = settings.maxPerRole[role];
           return (
-            <li key={role} className={`rule ${role}`}>
-              <label className="switch-row" title={min === 0 && !canAdd ? fullMessage : undefined}>
+            <li key={role} className={`rule ${role}${settings.ruleOn[role] ? "" : " is-off"}`}>
+              <label className="switch-row">
                 <input
                   type="checkbox"
-                  className="switch"
-                  checked={min > 0}
-                  disabled={min === 0 && !canAdd}
-                  onChange={(e) => setMin(role, e.target.checked ? 1 : 0)}
+                  className="switch small"
+                  checked={settings.ruleOn[role]}
+                  onChange={(e) => setRuleOn(role, e.target.checked)}
                 />
                 <span className="role-name">{role}</span>
               </label>
-              <div className="stepper" role="group" aria-label={`Minimum ${role}s`}>
-                <button
-                  type="button"
-                  className="icon-btn small"
-                  aria-label={`Fewer ${role}s`}
-                  disabled={min <= 1}
-                  onClick={() => setMin(role, min - 1)}
-                >
-                  <MinusIcon size={16} />
-                </button>
-                <span className="stepper-value" aria-live="polite">
-                  {min > 0 ? min : "–"}
-                </span>
-                <button
-                  type="button"
-                  className="icon-btn small"
-                  aria-label={`More ${role}s`}
-                  title={min > 0 && !canAdd ? fullMessage : undefined}
-                  disabled={min === 0 || !canAdd}
-                  onClick={() => setMin(role, min + 1)}
-                >
-                  <PlusIcon size={16} />
-                </button>
-              </div>
+              <RoleRange
+                label={role}
+                min={min}
+                max={max}
+                lowestMax={lowestMaximum(settings, role, playerCount)}
+                disabled={!settings.ruleOn[role]}
+                onChange={(nextMin, nextMax) => setRange(role, nextMin, nextMax)}
+              />
             </li>
           );
         })}
       </ul>
+
+      {/* What the rules mean for the team */}
+      <p className="rules-summary">{describeRules(settings, playerCount)}</p>
 
       {/* History */}
       <label className="switch-row history-toggle">

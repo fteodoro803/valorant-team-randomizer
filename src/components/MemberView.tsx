@@ -57,7 +57,7 @@ export function MemberView({ me, code, status, step, shared, onChange, onLeave }
             <CardRow cards={cards} you={me.name} />
             {shared?.rolled && (
               <p className="lock-note" data-locked={shared.rolled.locked}>
-                {shared.rolled.locked ? "Locked in. Saved to history." : "Not locked in yet. Not saved to history."}
+                {shared.rolled.locked ? "Locked in. Saved to history." : "\u00a0"}
               </p>
             )}
           </section>
