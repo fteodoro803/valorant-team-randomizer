@@ -1944,18 +1944,15 @@ button.card-bar:disabled {
   gap: 8px;
 }
 
-/* The advice about hosting from a computer is for wide screens, where a line under the heading costs nothing on a phone's short screen. */
-.party-hint {
+/* Starting a party is for a computer: a host that closes or sleeps ends the party for everyone (D39).
+   Stop party is never hidden, so a host who narrows the window can still end their own party. */
+.start-party {
   display: none;
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-  line-height: 1.4;
 }
 
-@media (min-width: 721px) {
-  .party-hint {
-    display: block;
+@media (min-width: 721px) and (hover: hover) and (pointer: fine) {
+  .start-party {
+    display: inline-flex;
   }
 }
 

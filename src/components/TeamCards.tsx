@@ -31,8 +31,6 @@ interface Props {
   onToggleKept: (rollId: string) => void;
   /** Give a player this agent by hand, and lock it for them. `rollId` is the player's roll key. */
   onAssign: (rollId: string, agent: string) => void;
-  /** Whether a party is open, which shows the advice about hosting from a computer. */
-  hosting: boolean;
 }
 
 /** Which card window is open. It names a random teammate by id, so it can still be found after the lists change. */
@@ -63,7 +61,6 @@ export function TeamCards({
   onForget,
   onToggleKept,
   onAssign,
-  hosting,
 }: Props) {
   const [cardWindow, setCardWindow] = useState<CardWindow>(null);
   // The player whose Configure window is open, and the player whose Assign window is open, by id so they survive a name edit.
@@ -179,13 +176,6 @@ export function TeamCards({
 
   return (
     <section aria-label="Team">
-      {/* Advice for the host, wide screens only: a phone has no room for it */}
-      {hosting && (
-        <p className="party-hint">
-          Host from a computer if you can: if this page closes or its device sleeps, the party ends for everyone.
-        </p>
-      )}
-
       <div aria-live="polite">
         <CardRow cards={cards} kept={kept} zones={zones} />
 
