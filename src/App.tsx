@@ -139,7 +139,7 @@ export default function App() {
     live.current = { players, teammates, roster, history, settings, rolled, kept };
   });
   // A bigger team can leave the role maximums adding up to less than the team, so the lowest ones go up
-  // to fit. Minimums are left alone however the team changes: a roll fills as many as it can (D-new1).
+  // to fit. Minimums are left alone however the team changes: a roll fills as many as it can (D39).
   const raiseMaximums = (players: Player[], teammates: Teammate[]) => {
     const { settings } = live.current;
     const fitted = fitMaximums(settings, teamSize(players, teammates));

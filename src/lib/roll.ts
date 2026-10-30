@@ -23,7 +23,7 @@ export interface Reroll {
  * agents and (optionally) each player's recent roles.
  *
  * Minimums are not limited by the team size: when they ask for more than the team can hold, every
- * player fills a required role, and role history decides which ones (D-new1). Maximums are strict.
+ * player fills a required role, and role history decides which ones (D39). Maximums are strict.
  *
  * With `reroll`, the players in `keptIds` keep their current picks and only the
  * others are rolled. Kept roles count toward the limits, kept agents can't be

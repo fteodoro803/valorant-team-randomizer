@@ -5,7 +5,7 @@ import { MAX_PLAYERS, ROLES } from "./types";
  * The limits a role can be given, kept apart from the roll so the Rules panel and the page share them.
  *
  * Minimums are not limited by the team size: a roll fills as many required roles as the team can
- * hold (D-new1). Maximums are, because a ceiling can't be stretched. Together they must leave room
+ * hold (D39). Maximums are, because a ceiling can't be stretched. Together they must leave room
  * for everyone, so the maximums have to add up to at least the team.
  *
  * A role's switch decides whether its range applies. Everything here that decides what a roll will do
@@ -83,7 +83,7 @@ export function describeRange(min: number, max: number): string {
  * A role that is switched off, or on at the full range, has no clause.
  *
  * Says when the minimums ask for more than the team can hold, since the roll then fills as many as it
- * can and the sentence is where that is explained (D-new1).
+ * can and the sentence is where that is explained (D39).
  */
 export function describeRules(settings: Rules, playerCount: number): string {
   const active = activeRules(settings);

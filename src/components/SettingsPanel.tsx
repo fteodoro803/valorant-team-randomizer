@@ -18,7 +18,7 @@ interface Props {
  * what they mean for the team, and whether history counts.
  *
  * A role's switch turns its range on or off and never changes the range, so switching a role off and
- * on again gives back what was set. An off role is greyed out and the roll ignores it (D-new1).
+ * on again gives back what was set. An off role is greyed out and the roll ignores it (D39).
  * Minimums can be any size, since a roll fills as many required roles as the team can hold, but the
  * maximum handle stops where the maximums would stop leaving room for the team.
  *

@@ -27,7 +27,7 @@ const NOTCHES = Array.from({ length: MAX_PLAYERS + 1 }, (_, n) => n);
  *
  * The minimum handle can't pass the maximum, and the maximum handle stops at `lowestMax`, so the
  * rules can never ask for an impossible team (3A). The minimum is free to rise above the team size,
- * because a roll fills as many required roles as it can (D-new1).
+ * because a roll fills as many required roles as it can (D39).
  */
 export function RoleRange({ label, min, max, lowestMax, disabled, onChange }: Props) {
   const track = useRef<HTMLDivElement>(null);
