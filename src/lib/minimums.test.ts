@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeRules, describeRange, describeRules, fitMaximums, isFullRange, lowestMaximum, totalMaximums } from "./minimums";
+import { describeRange, describeRules, fitMaximums, isFullRange, lowestMaximum, totalMaximums } from "./minimums";
 
 const roles = (duelist: number, initiator: number, controller: number, sentinel: number) => ({
   duelist,
@@ -8,32 +8,13 @@ const roles = (duelist: number, initiator: number, controller: number, sentinel:
   sentinel,
 });
 
-const allOn = { duelist: true, initiator: true, controller: true, sentinel: true };
-
-/** Rules with every role switched on, unless `ruleOn` says otherwise. */
-const rules = (
-  minPerRole: ReturnType<typeof roles>,
-  maxPerRole: ReturnType<typeof roles>,
-  ruleOn: Record<"duelist" | "initiator" | "controller" | "sentinel", boolean> = allOn,
-) => ({ minPerRole, maxPerRole, ruleOn });
+const rules = (minPerRole: ReturnType<typeof roles>, maxPerRole: ReturnType<typeof roles>) => ({
+  minPerRole,
+  maxPerRole,
+});
 
 const free = roles(5, 5, 5, 5);
 const none = roles(0, 0, 0, 0);
-
-describe("activeRules", () => {
-  it("keeps the range of a role that is on", () => {
-    expect(activeRules(rules(roles(1, 0, 0, 0), roles(3, 5, 5, 5)))).toEqual({
-      minPerRole: roles(1, 0, 0, 0),
-      maxPerRole: roles(3, 5, 5, 5),
-    });
-  });
-
-  it("gives a role that is off the full range, without losing the one it keeps", () => {
-    const settings = rules(roles(2, 1, 0, 0), roles(3, 2, 5, 5), { ...allOn, duelist: false });
-    expect(activeRules(settings)).toEqual({ minPerRole: roles(0, 1, 0, 0), maxPerRole: roles(5, 2, 5, 5) });
-    expect(settings.minPerRole.duelist).toBe(2);
-  });
-});
 
 describe("fitMaximums", () => {
   it("leaves maximums alone when they already leave room", () => {
@@ -51,10 +32,6 @@ describe("fitMaximums", () => {
 
   it("never goes above the team limit", () => {
     expect(fitMaximums(rules(none, free), 5)).toEqual(free);
-  });
-
-  it("does nothing when a role is off, since it can hold anyone", () => {
-    expect(fitMaximums(rules(none, roles(1, 1, 1, 0), { ...allOn, sentinel: false }), 5)).toEqual(roles(1, 1, 1, 0));
   });
 
   it("does not change the object it was given", () => {
@@ -81,11 +58,6 @@ describe("maximums", () => {
 
   it("never goes below the role's own minimum", () => {
     expect(lowestMaximum(rules(roles(3, 0, 0, 0), free), "duelist", 5)).toBe(3);
-  });
-
-  it("counts a role that is off as room for anyone", () => {
-    const settings = rules(none, roles(2, 1, 1, 1), { ...allOn, sentinel: false });
-    expect(lowestMaximum(settings, "duelist", 5)).toBe(0);
   });
 });
 
@@ -120,40 +92,40 @@ describe("describeRange", () => {
 
 describe("describeRules", () => {
   it("says there are no rules when every role is at Any", () => {
-    expect(describeRules(rules(none, free), 5)).toBe("No rules. Any mix of roles.");
+    expect(describeRules(rules(none, free))).toBe("No rules. Any mix of roles.");
   });
 
   it("lists a clause for each role with a rule, in role order, and what is left over", () => {
-    expect(describeRules(rules(roles(3, 0, 0, 0), roles(5, 5, 5, 1)), 5)).toBe(
+    expect(describeRules(rules(roles(3, 0, 0, 0), roles(5, 5, 5, 1)))).toBe(
       "At least 3 duelists. At most 1 sentinel. Any mix for the rest.",
     );
   });
 
   it("uses the singular for one", () => {
-    expect(describeRules(rules(roles(1, 0, 0, 0), free), 5)).toBe("At least 1 duelist. Any mix for the rest.");
+    expect(describeRules(rules(roles(1, 0, 0, 0), free))).toBe("At least 1 duelist. Any mix for the rest.");
   });
 
   it("words exact counts, spans and a role kept out", () => {
-    expect(describeRules(rules(roles(2, 1, 0, 0), roles(2, 3, 5, 0)), 5)).toBe(
+    expect(describeRules(rules(roles(2, 1, 0, 0), roles(2, 3, 5, 0)))).toBe(
       "Exactly 2 duelists. 1 to 3 initiators. No sentinels. Any mix for the rest.",
     );
   });
 
   it("leaves out the leftover line when every role has a rule", () => {
-    expect(describeRules(rules(roles(1, 1, 0, 0), roles(5, 5, 2, 2)), 5)).toBe(
+    expect(describeRules(rules(roles(1, 1, 0, 0), roles(5, 5, 2, 2)))).toBe(
       "At least 1 duelist. At least 1 initiator. At most 2 controllers. At most 2 sentinels.",
     );
   });
 
-  it("leaves a role that is switched off out of the sentence", () => {
-    expect(describeRules(rules(roles(3, 1, 0, 0), roles(5, 2, 5, 5), { ...allOn, duelist: false }), 5)).toBe(
+  it("leaves a role at the full range out of the sentence", () => {
+    expect(describeRules(rules(roles(0, 1, 0, 0), roles(5, 2, 5, 5)))).toBe(
       "1 to 2 initiators. Any mix for the rest.",
     );
   });
 
-  it("explains a team smaller than the minimums ask for", () => {
-    expect(describeRules(rules(roles(1, 1, 1, 1), free), 3)).toBe(
-      "At least 1 duelist. At least 1 initiator. At least 1 controller. At least 1 sentinel. The minimums ask for 4 and the team holds 3, so each roll picks which.",
+  it("says nothing extra when the minimums ask for more than the team holds", () => {
+    expect(describeRules(rules(roles(1, 1, 1, 1), free))).toBe(
+      "At least 1 duelist. At least 1 initiator. At least 1 controller. At least 1 sentinel.",
     );
   });
 });

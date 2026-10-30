@@ -1,5 +1,4 @@
 import { AGENTS } from "../data/agents";
-import { activeRules } from "./minimums";
 import type { Agent, Assignment, History, Player, Role, Settings } from "./types";
 import { MAX_PLAYERS, ROLES } from "./types";
 
@@ -61,14 +60,12 @@ export function rollComp(
     .map((p) => withoutCurrentAgent(p, reroll?.current));
   if (open.length === 0) throw new RollError("Everyone is locked. Tap someone to change them.");
   const pool = agents.filter((a) => !fixed.some((pick) => pick.agent === a.name));
-  // A role that is switched off has no rule, whatever range it keeps.
-  const rules = activeRules(settings);
-  checkRanges(rules);
+  checkRanges(settings);
   // What the rolled players still owe once the kept and taken picks have taken their share.
   const owed: Settings = {
     ...settings,
-    minPerRole: leftOver(rules.minPerRole, fixed),
-    maxPerRole: leftOver(rules.maxPerRole, fixed),
+    minPerRole: leftOver(settings.minPerRole, fixed),
+    maxPerRole: leftOver(settings.maxPerRole, fixed),
   };
 
   validate(open, owed, pool);

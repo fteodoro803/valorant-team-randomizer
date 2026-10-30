@@ -47,7 +47,6 @@ describe("parseSettings", () => {
     agentHistoryAware: false,
     minPerRole: { duelist: 1, initiator: 0, controller: 0, sentinel: 0 },
     maxPerRole: { duelist: 3, initiator: 5, controller: 5, sentinel: 1 },
-    ruleOn: { duelist: true, initiator: false, controller: false, sentinel: true },
   };
 
   it("accepts good settings and rejects bad ones", () => {
@@ -57,11 +56,10 @@ describe("parseSettings", () => {
   });
 
   it("loads settings saved before maximums existed with no ceiling", () => {
-    const { maxPerRole: _, ruleOn: __, ...old } = good;
+    const { maxPerRole: _, ...old } = good;
     expect(parseSettings(old)).toEqual({
       ...good,
       maxPerRole: { duelist: 5, initiator: 5, controller: 5, sentinel: 5 },
-      ruleOn: { duelist: true, initiator: false, controller: false, sentinel: false },
     });
   });
 
@@ -72,13 +70,17 @@ describe("parseSettings", () => {
     expect(parseSettings({ ...good, agentHistoryAware: "yes" })).toBeNull();
   });
 
-  it("loads settings saved before the switches came back with a role on when its range is narrower", () => {
-    const { ruleOn: _, ...old } = good;
-    expect(parseSettings(old)?.ruleOn).toEqual({ duelist: true, initiator: false, controller: false, sentinel: true });
+  it("loads a role saved as switched off with no limit, since its kept range never applied", () => {
+    const old = { ...good, ruleOn: { duelist: false, initiator: true, controller: true, sentinel: true } };
+    const loaded = parseSettings(old);
+    expect(loaded?.minPerRole.duelist).toBe(0);
+    expect(loaded?.maxPerRole.duelist).toBe(5);
+    expect(loaded?.maxPerRole.sentinel).toBe(1);
+    expect(loaded).not.toHaveProperty("ruleOn");
   });
 
-  it("rejects a switch that is not true or false", () => {
-    expect(parseSettings({ ...good, ruleOn: { ...good.ruleOn, duelist: "yes" } })).toBeNull();
+  it("applies the ranges of settings saved before the switches existed", () => {
+    expect(parseSettings(good)?.maxPerRole.duelist).toBe(3);
   });
 
   it("rejects a minimum above its maximum, or a maximum above the team limit", () => {

@@ -8,39 +8,24 @@ import { MAX_PLAYERS, ROLES } from "./types";
  * hold (D39). Maximums are, because a ceiling can't be stretched. Together they must leave room
  * for everyone, so the maximums have to add up to at least the team.
  *
- * A role's switch decides whether its range applies. Everything here that decides what a roll will do
- * reads the ranges through `activeRules`, so a role that is off never limits anything.
+ * A role with no limit has the full range, 0 to MAX_PLAYERS. There is no switch to pause a range.
  */
 
-type Ranges = Pick<Settings, "minPerRole" | "maxPerRole">;
-type Rules = Ranges & Pick<Settings, "ruleOn">;
-
-/** The ranges a roll should use: a role that is switched off has no rule, whatever range it keeps. */
-export function activeRules(settings: Rules): Ranges {
-  const minPerRole = {} as Settings["minPerRole"];
-  const maxPerRole = {} as Settings["maxPerRole"];
-  for (const role of ROLES) {
-    minPerRole[role] = settings.ruleOn[role] ? settings.minPerRole[role] : 0;
-    maxPerRole[role] = settings.ruleOn[role] ? settings.maxPerRole[role] : MAX_PLAYERS;
-  }
-  return { minPerRole, maxPerRole };
-}
+type Rules = Pick<Settings, "minPerRole" | "maxPerRole">;
 
 /** How many players the role maximums add up to. */
 export const totalMaximums = (maxPerRole: Settings["maxPerRole"]): number =>
   ROLES.reduce((sum, role) => sum + maxPerRole[role], 0);
 
 /**
- * Raises the maximums of the roles that are on until they leave room for the whole team, one at a
- * time from the role with the lowest maximum. A tie raises the earlier role in the list first. A role
- * that is off can hold anyone, so it is never raised, and when one is off nothing needs raising.
- * Returns a new object, unchanged if it already fits.
+ * Raises the maximums until they leave room for the whole team, one at a time from the role with the
+ * lowest maximum. A tie raises the earlier role in the list first. Returns a new object, unchanged
+ * if it already fits.
  */
 export function fitMaximums(settings: Rules, playerCount: number): Settings["maxPerRole"] {
   const next = { ...settings.maxPerRole };
-  const roomFor = () => totalMaximums(activeRules({ ...settings, maxPerRole: next }).maxPerRole);
-  while (roomFor() < playerCount) {
-    const raisable = ROLES.filter((role) => settings.ruleOn[role] && next[role] < MAX_PLAYERS);
+  while (totalMaximums(next) < playerCount) {
+    const raisable = ROLES.filter((role) => next[role] < MAX_PLAYERS);
     if (raisable.length === 0) break;
     const lowest = raisable.reduce((best, role) => (next[role] < next[best] ? role : best), raisable[0]);
     next[lowest] += 1;
@@ -53,7 +38,7 @@ export function fitMaximums(settings: Rules, playerCount: number): Settings["max
  * stop leaving room for the team.
  */
 export function lowestMaximum(settings: Rules, role: (typeof ROLES)[number], playerCount: number): number {
-  const spare = Math.max(0, totalMaximums(activeRules(settings).maxPerRole) - playerCount);
+  const spare = Math.max(0, totalMaximums(settings.maxPerRole) - playerCount);
   return Math.max(settings.minPerRole[role], settings.maxPerRole[role] - spare);
 }
 
@@ -64,7 +49,7 @@ export const isFullRange = (min: number, max: number): boolean => min === 0 && m
 const count = (n: number, role: string): string => `${n} ${role}${n === 1 ? "" : "s"}`;
 
 /**
- * A role's range in words, for the readout beside its track.
+ * A role's range in words, for the sentence under the rows.
  *
  * "Any" is the full range. The wording says what the numbers mean for a team: "3 or more" rather
  * than "3–5", since five is only the most a team can hold.
@@ -80,18 +65,15 @@ export function describeRange(min: number, max: number): string {
 
 /**
  * The rules as a short sentence about the team, one clause per role that has a rule, in role order.
- * A role that is switched off, or on at the full range, has no clause.
- *
- * Says when the minimums ask for more than the team can hold, since the roll then fills as many as it
- * can and the sentence is where that is explained (D39).
+ * A role at the full range has no clause. It says nothing when the minimums ask for more than the
+ * team can hold, although a roll then fills as many as it can (D39, D-new2).
  */
-export function describeRules(settings: Rules, playerCount: number): string {
-  const active = activeRules(settings);
+export function describeRules(settings: Rules): string {
   const clauses: string[] = [];
   let someFree = false;
   for (const role of ROLES) {
-    const min = active.minPerRole[role];
-    const max = active.maxPerRole[role];
+    const min = settings.minPerRole[role];
+    const max = settings.maxPerRole[role];
     if (isFullRange(min, max)) {
       someFree = true;
     } else if (max === 0) {
@@ -108,9 +90,5 @@ export function describeRules(settings: Rules, playerCount: number): string {
   }
   if (clauses.length === 0) return "No rules. Any mix of roles.";
   if (someFree) clauses.push("Any mix for the rest.");
-  const asked = ROLES.reduce((sum, role) => sum + active.minPerRole[role], 0);
-  if (asked > playerCount) {
-    clauses.push(`The minimums ask for ${asked} and the team holds ${playerCount}, so each roll picks which.`);
-  }
   return clauses.join(" ");
 }

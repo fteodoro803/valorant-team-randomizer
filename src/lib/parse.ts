@@ -66,11 +66,12 @@ export function parseRoster(value: unknown): Roster | null {
  * Reads the saved rules back into Settings, or null if they aren't usable.
  *
  * Rules saved before maximums existed hold only minimums. They load with every maximum at
- * MAX_PLAYERS, which is no ceiling, so nobody loses a setting. Rules saved before the switches came
- * back load with a role on when its range is narrower than the full one, so a roll behaves as it did.
+ * MAX_PLAYERS, which is no ceiling, so nobody loses a setting. Rules saved while roles had switches
+ * load a role that was switched off at the full range, so a roll behaves as it did (the range it kept
+ * was never applied).
  */
 export function parseSettings(value: unknown): Settings | null {
-  const s = value as (Partial<Settings> & { minPerRole?: Record<string, unknown> }) | null;
+  const s = value as (Partial<Settings> & { minPerRole?: Record<string, unknown>; ruleOn?: unknown }) | null;
   if (typeof s !== "object" || s === null || typeof s.historyAware !== "boolean") return null;
   const mins = s.minPerRole;
   const saved = s.maxPerRole as Record<string, unknown> | undefined;
@@ -82,20 +83,18 @@ export function parseSettings(value: unknown): Settings | null {
   if (savedOn !== undefined && (typeof savedOn !== "object" || savedOn === null)) return null;
   const minPerRole = {} as Settings["minPerRole"];
   const maxPerRole = {} as Settings["maxPerRole"];
-  const ruleOn = {} as Settings["ruleOn"];
   for (const role of ROLES) {
     const min = mins[role];
     const max = saved === undefined ? MAX_PLAYERS : saved[role];
     if (!isCount(min) || !isCount(max) || min > max) return null;
-    minPerRole[role] = min;
-    maxPerRole[role] = max;
-    // Saved before the switches came back: a role was on exactly when its range was narrower than the full one.
-    const on = savedOn === undefined ? !(min === 0 && max === MAX_PLAYERS) : savedOn[role];
-    if (typeof on !== "boolean") return null;
-    ruleOn[role] = on;
+    // 1. A role saved as off never limited anything, so it loads with no limit.
+    // 2. Before the switches existed there were none, so every saved range was applied.
+    const off = savedOn !== undefined && savedOn[role] === false;
+    minPerRole[role] = off ? 0 : min;
+    maxPerRole[role] = off ? MAX_PLAYERS : max;
   }
   // Saved before agents had their own switch: it follows the roles switch, so a roll behaves as it did.
   const agentHistoryAware = s.agentHistoryAware ?? s.historyAware;
   if (typeof agentHistoryAware !== "boolean") return null;
-  return { minPerRole, maxPerRole, ruleOn, historyAware: s.historyAware, agentHistoryAware };
+  return { minPerRole, maxPerRole, historyAware: s.historyAware, agentHistoryAware };
 }

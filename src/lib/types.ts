@@ -31,11 +31,6 @@ export interface Settings {
    * MAX_PLAYERS asks for nothing.
    */
   maxPerRole: Record<Role, number>;
-  /**
-   * Whether each role's range applies. A role that is off keeps its range, so switching it back on
-   * restores it, but the roll and the sentence treat it as having no rule (D39).
-   */
-  ruleOn: Record<Role, boolean>;
   /** When on, roles a player has had recently are less likely to come up again. */
   historyAware: boolean;
   /** When on, agents a player has had recently are less likely to come up again. Separate from the roles switch. */
